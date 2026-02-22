@@ -1,0 +1,122 @@
+# release automation config for dawnfetch
+
+version: 2
+
+project_name: dawnfetch
+dist: release-dist
+
+snapshot:
+  version_template: "{{ .Env.VERSION }}"
+
+release:
+  disable: true
+
+builds:
+  - id: linux-main
+    main: ./main.go
+    binary: dawnfetch
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - 386
+      - arm
+    goarm:
+      - "7"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X dawnfetch/internal/dawnfetch.version={{ .Version }}
+
+  - id: linux-extra
+    main: ./main.go
+    binary: dawnfetch
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - ppc64le
+      - s390x
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X dawnfetch/internal/dawnfetch.version={{ .Version }}
+
+  - id: windows
+    main: ./main.go
+    binary: dawnfetch
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - 386
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X dawnfetch/internal/dawnfetch.version={{ .Version }}
+
+  - id: macos
+    main: ./main.go
+    binary: dawnfetch
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X dawnfetch/internal/dawnfetch.version={{ .Version }}
+
+archives:
+  - id: binaries
+    builds:
+      - linux-main
+      - linux-extra
+      - macos
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    files:
+      - themes.json
+      - ascii/**
+
+  - id: windows-bundles
+    builds:
+      - windows
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - themes.json
+      - ascii/**
+    format: zip
+
+nfpms:
+  - id: linux-packages
+    package_name: dawnfetch
+    builds:
+      - linux-main
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+    maintainer: almightynan <nan@almightynan.cc>
+    description: 🏳️‍⚧️ a fast, cross-platform system info CLI with beautiful theme support
+    homepage: https://github.com/almightynan/dawnfetch
+    license: MIT
+    file_name_template: "{{ .ConventionalFileName }}"
+    contents:
+      - src: ./themes.json
+        dst: /usr/share/dawnfetch/themes.json
+      - src: ./ascii/*
+        dst: /usr/share/dawnfetch/ascii/
+
+checksum:
+  name_template: "checksums_{{ .Version }}.txt"
