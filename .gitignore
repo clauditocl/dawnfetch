@@ -7,6 +7,7 @@ bench/plots/
 dawnfetch*
 dawnfetch_config.json
 !dawnfetch/
+node_modules/
 
 # Binaries for programs and plugins
 *.exe
