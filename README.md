@@ -41,15 +41,29 @@ $f="$env:TEMP\dawnfetch-install.ps1";(New-Object Net.WebClient).DownloadFile('ht
 npm i -g dawnfetch
 ```
 
+After npm install (if command is not recognized):
+
+- Linux (current shell): `source ~/.bashrc` or `source ~/.zshrc`
+- Windows PowerShell (current window):
+
+```powershell
+$env:Path=[Environment]::GetEnvironmentVariable("Path","User")+";"+[Environment]::GetEnvironmentVariable("Path","Machine")
+```
+
+- Or simply close and reopen the terminal.
+
+If your system is on older Node/npm (example: Node 12 / npm 6), prefer direct install instead of npm:
+
+```powershell
+powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"
+```
+
 If you use bun and see `Blocked postinstall`, allow trusted scripts and reinstall:
 
 ```bash
 bun pm -g untrusted
 bun remove -g dawnfetch && bun add -g dawnfetch
 ```
-
-On Windows, if `dawnfetch` is not recognized right after `npm i -g dawnfetch`, restart the shell.
-If still missing, ensure npm global bin path is in `PATH` (usually `%APPDATA%\\npm`).
 
 
 To verify installation run:
@@ -59,7 +73,7 @@ dawnfetch --version
 dawnfetch
 ```
 
-## Build
+## Build from source
 
 All build scripts output binaries to the repo root `dist/` directory.
 

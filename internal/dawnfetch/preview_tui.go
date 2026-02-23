@@ -154,7 +154,7 @@ func (m previewThemeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.search.Width = 32
 		}
-		return m, nil
+		return m, tea.ClearScreen
 	case tea.KeyMsg:
 		if m.confirmOpen {
 			switch msg.String() {
@@ -397,7 +397,7 @@ func (m previewThemeModel) renderThemeList(width, height int) string {
 	for len(lines) < height {
 		lines = append(lines, "")
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(normalizePreviewLines(lines, width, height), "\n")
 }
 
 func (m previewThemeModel) renderPreview(width, height int) (string, bool) {
@@ -408,20 +408,36 @@ func (m previewThemeModel) renderPreview(width, height int) (string, bool) {
 	palette := m.palettes[theme]
 	previewLines, stacked := buildThemePreviewLines(theme, palette, m.fields, m.noColor, width, height)
 
-	for i := range previewLines {
-		plain := stripANSI(previewLines[i])
-		if displayWidth(plain) > width {
-			previewLines[i] = truncateRunes(plain, width)
-		}
-	}
-	if len(previewLines) > height {
-		previewLines = previewLines[:height]
-	}
-	for len(previewLines) < height {
-		previewLines = append(previewLines, "")
-	}
+	previewLines = normalizePreviewLines(previewLines, width, height)
 	content := strings.Join(previewLines, "\n")
 	return lipgloss.Place(width, height, lipgloss.Left, lipgloss.Top, content), stacked
+}
+
+func normalizePreviewLines(lines []string, width, height int) []string {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+	if len(lines) > height {
+		lines = lines[:height]
+	}
+
+	out := make([]string, 0, height)
+	for _, styled := range lines {
+		raw := stripANSI(styled)
+		if displayWidth(raw) > width {
+			// keep rendering stable on resize; when clipped, prefer plain text over broken ansi.
+			raw = truncateRunes(raw, width)
+			styled = raw
+		}
+		out = append(out, padRightStyled(styled, raw, width))
+	}
+	for len(out) < height {
+		out = append(out, strings.Repeat(" ", width))
+	}
+	return out
 }
 
 func buildThemePreviewLines(theme string, palette []string, fields []Field, noColor bool, maxWidth, maxHeight int) ([]string, bool) {

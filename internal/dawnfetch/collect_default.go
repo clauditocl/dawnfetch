@@ -892,6 +892,24 @@ func swapUsageSummary() string {
 }
 
 func diskRootUsageDetailed() string {
+	if usedAll, totalAll, diskCount, fsAll, ok := aggregateLocalDiskUsage(); ok && diskCount > 1 {
+		pctAll := int64(0)
+		if totalAll > 0 {
+			pctAll = (usedAll * 100) / totalAll
+		}
+		if fsAll == "" {
+			fsAll = "unknown"
+		}
+		return fmt.Sprintf(
+			"%s / %s (%d%%) - %s (%d disks)",
+			formatGiB2(usedAll),
+			formatGiB2(totalAll),
+			pctAll,
+			fsAll,
+			diskCount,
+		)
+	}
+
 	total, free, err := diskUsage("/")
 	if err != nil {
 		return "unknown"
@@ -906,6 +924,119 @@ func diskRootUsageDetailed() string {
 		fs = "unknown"
 	}
 	return fmt.Sprintf("%s / %s (%d%%) - %s", formatGiB2(used), formatGiB2(total), pct, fs)
+}
+
+func aggregateLocalDiskUsage() (used int64, total int64, diskCount int, fsSummary string, ok bool) {
+	switch runtime.GOOS {
+	case "linux":
+		b, err := os.ReadFile("/proc/mounts")
+		if err != nil {
+			return 0, 0, 0, "", false
+		}
+
+		type mountInfo struct {
+			mountPoint string
+			fsType     string
+		}
+		devices := map[string]mountInfo{}
+
+		for _, line := range strings.Split(string(b), "\n") {
+			f := strings.Fields(line)
+			if len(f) < 3 {
+				continue
+			}
+			src := strings.TrimSpace(f[0])
+			mnt := strings.TrimSpace(f[1])
+			fs := strings.TrimSpace(f[2])
+
+			if !strings.HasPrefix(src, "/dev/") {
+				continue
+			}
+			if strings.HasPrefix(src, "/dev/loop") || strings.HasPrefix(src, "/dev/zram") {
+				continue
+			}
+			if mnt == "" {
+				continue
+			}
+			if _, exists := devices[src]; exists {
+				continue
+			}
+			devices[src] = mountInfo{mountPoint: mnt, fsType: fs}
+		}
+
+		if len(devices) == 0 {
+			return 0, 0, 0, "", false
+		}
+
+		fsKinds := map[string]int{}
+		for _, item := range devices {
+			t, f, err := diskUsage(item.mountPoint)
+			if err != nil || t <= 0 {
+				continue
+			}
+			total += t
+			used += (t - f)
+			diskCount++
+			if item.fsType != "" {
+				fsKinds[item.fsType]++
+			}
+		}
+		if diskCount == 0 || total <= 0 {
+			return 0, 0, 0, "", false
+		}
+		return used, total, diskCount, dominantFSType(fsKinds), true
+
+	case "darwin":
+		out, _ := runCmd(300*time.Millisecond, "df", "-kP")
+		if strings.TrimSpace(out) == "" {
+			return 0, 0, 0, "", false
+		}
+		deviceMount := map[string]string{}
+		for _, line := range strings.Split(out, "\n") {
+			f := strings.Fields(line)
+			if len(f) < 6 {
+				continue
+			}
+			src := strings.TrimSpace(f[0])
+			mnt := strings.TrimSpace(f[len(f)-1])
+			if !strings.HasPrefix(src, "/dev/disk") || mnt == "" {
+				continue
+			}
+			if _, exists := deviceMount[src]; !exists {
+				deviceMount[src] = mnt
+			}
+		}
+		if len(deviceMount) == 0 {
+			return 0, 0, 0, "", false
+		}
+		for _, mnt := range deviceMount {
+			t, f, err := diskUsage(mnt)
+			if err != nil || t <= 0 {
+				continue
+			}
+			total += t
+			used += (t - f)
+			diskCount++
+		}
+		if diskCount == 0 || total <= 0 {
+			return 0, 0, 0, "", false
+		}
+		return used, total, diskCount, "apfs", true
+	}
+
+	return 0, 0, 0, "", false
+}
+
+func dominantFSType(kinds map[string]int) string {
+	best := ""
+	bestCount := -1
+	for fs, c := range kinds {
+		if c > bestCount || (c == bestCount && fs < best) {
+			best = fs
+			bestCount = c
+		}
+	}
+	return best
 }
 
 func localIPSummary() string {

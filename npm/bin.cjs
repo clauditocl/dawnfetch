@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 "use strict";
 
-const { spawnSync } = require("node:child_process");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
+const { spawnSync } = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
 const SELF_HEAL_ENV = "DAWNFETCH_NPM_SELF_HEAL";
 
@@ -52,6 +52,7 @@ if (!exe) {
     "dawnfetch binary was not found in the expected install location.",
     "",
     "This usually means postinstall was blocked (common with bun) or failed.",
+    "On older Node/npm environments, use the direct installer commands below.",
     "",
     "For bun, trust package scripts and reinstall:",
     "  bun pm -g untrusted",
