@@ -207,8 +207,15 @@ print_path_hint() {
   if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     warn "add dawnfetch to PATH:"
     warn "  export PATH=\"$BIN_DIR:\$PATH\""
-    warn "then restart shell or run:"
-    warn "  export PATH=\"$BIN_DIR:\$PATH\""
+    warn "if dawnfetch is not found in this shell, reload your shell config:"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+      warn "  source ~/.zshrc"
+    elif [[ -n "${BASH_VERSION:-}" ]]; then
+      warn "  source ~/.bashrc"
+    else
+      warn "  source ~/.profile"
+    fi
+    warn "or restart your terminal."
   fi
 }
 
@@ -232,7 +239,8 @@ main() {
   install_files "$unpack"
 
   info "dawnfetch installed successfully."
-  info "run: dawnfetch"
+  info "run now:"
+  info "  dawnfetch"
   print_path_hint
 }
 

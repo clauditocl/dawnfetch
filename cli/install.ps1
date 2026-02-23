@@ -260,13 +260,16 @@ if (-not (Test-Path -LiteralPath $exePath)) {
 $pathUpdated = Add-UserPath -Dir $InstallDir
 
 Write-Good "dawnfetch installed successfully."
-Write-Good "run: dawnfetch"
+Write-Good "run now:"
+Write-Host "  dawnfetch" -ForegroundColor DarkGray
 if ($pathUpdated) {
   Write-Info "path updated for current user."
 }
 
 if (-not (Get-Command dawnfetch -ErrorAction SilentlyContinue)) {
   Refresh-PathMessage
+} else {
+  Write-Info "if you opened a new shell and command is still missing, restart powershell/cmd."
 }
 
 try {
