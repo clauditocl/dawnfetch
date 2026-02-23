@@ -1,176 +1,114 @@
-<h1 align="center">dawnfetch</h1>
+# dawnfetch
 
-<p align="center">
-  a fast, cross-platform system info CLI with beautiful theme support
-</p>
+a fast, themed, cross-platform system info CLI inspired by neofetch and fastfetch.
 
-<p align="center">
-  <a href="https://github.com/almightynan/dawnfetch/actions/workflows/release-build.yml"><img src="https://img.shields.io/github/actions/workflow/status/almightynan/dawnfetch/release-build.yml?label=release%20build" alt="release build status"></a>
-  <a href="https://github.com/almightynan/dawnfetch/releases"><img src="https://img.shields.io/github/v/release/almightynan/dawnfetch?display_name=tag" alt="latest release"></a>
-  <img src="https://img.shields.io/badge/go-1.20+-00ADD8?logo=go&logoColor=white" alt="go version">
-  <a href="https://github.com/almightynan/dawnfetch/stargazers"><img src="https://img.shields.io/github/stars/almightynan/dawnfetch" alt="stars"></a>
-</p>
+[![release build](https://img.shields.io/github/actions/workflow/status/almightynan/dawnfetch/release-build.yml?label=release%20build)](https://github.com/almightynan/dawnfetch/actions/workflows/release-build.yml)
+[![latest release](https://img.shields.io/github/v/release/almightynan/dawnfetch?display_name=tag)](https://github.com/almightynan/dawnfetch/releases)
+![go](https://img.shields.io/badge/go-1.20+-00ADD8?logo=go&logoColor=white)
+[![stars](https://img.shields.io/github/stars/almightynan/dawnfetch)](https://github.com/almightynan/dawnfetch/stargazers)
 
-<div align="center">
-  <a href="#installation">Installation</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="#npm-publish-automation">NPM</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="#usage">Usage</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="#themes">Themes</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="#build">Build</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="#benchmarking">Benchmarking</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/almightynan/dawnfetch/issues">Issues</a>
-</div>
+Quick links: [Install](#install) • [Build](#build) • [Benchmark](#benchmark-100-runs) • [Showcase](#showcase)
 
----
+![](assets/dawnfetch_debian12.png)
 
-## What Is dawnfetch?
+Logo credits: all distro ASCII logos in `ascii/` are sourced from the [fastfetch](https://github.com/fastfetch-cli/fastfetch) project. Credit goes to the fastfetch contributors.
 
-`dawnfetch` is a fast system info tool inspired by neofetch/fastfetch, with:
+## Install
 
-- cross-platform support (`linux`, `macos`, `windows`)
-- built-in themed palettes (`themes.json`)
-- large ascii logo set (`ascii/`)
-- interactive theme preview tui (`preview-theme`)
-- optional image logos (`png`, `jpg/jpeg`, `webp`, `gif`, `bmp`, `tiff`)
+Choose one method:
 
-
-## Installation
-
-### Linux and macOS
+1. Linux/macOS (recommended)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.sh | bash
 ```
 
-This installs:
-
-- binary: `~/.local/bin/dawnfetch`
-- assets: `~/.local/share/dawnfetch/themes.json` and `~/.local/share/dawnfetch/ascii/`
-
-### Windows (PowerShell)
+2. Windows (PowerShell)
 
 ```powershell
 powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"
 ```
 
-### npm
-
-```bash
-npm i -g @almightynan/dawnfetch
-```
-
-The npm package runs the same platform installer (`cli/install.sh` or `cli/install.ps1`) during `postinstall`.
-
-### Windows 7 / PowerShell 2 fallback
+3. Windows 7 / old PowerShell fallback
 
 ```powershell
 $f="$env:TEMP\dawnfetch-install.ps1";(New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1',$f);powershell -File $f
 ```
 
-If you are in `cmd.exe`:
-
-```bat
-powershell -c "$f=$env:TEMP+'\dawnfetch-install.ps1';(New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1',$f);powershell -File $f"
-```
-
----
-
-## Usage
-
-### Quick start
+4. npm
 
 ```bash
+npm i -g dawnfetch
+```
+
+If you use bun and see `Blocked postinstall`, allow trusted scripts and reinstall:
+
+```bash
+bun pm -g untrusted
+bun remove -g dawnfetch && bun add -g dawnfetch
+```
+
+On Windows, if `dawnfetch` is not recognized right after `npm i -g dawnfetch`, restart the shell.
+If still missing, ensure npm global bin path is in `PATH` (usually `%APPDATA%\\npm`).
+
+
+To verify installation run:
+
+```bash
+dawnfetch --version
 dawnfetch
 ```
 
-From source:
-
-```bash
-go run .
-```
-
-Build local binary:
-
-```bash
-go build -o dawnfetch .
-./dawnfetch
-```
-
-### Main commands
-
-| Command | Description |
-|---|---|
-| `dawnfetch` | default output |
-| `dawnfetch --help` | show help |
-| `dawnfetch --version` | show version |
-| `dawnfetch --list-themes` | list available themes |
-| `dawnfetch preview-theme` | interactive theme preview |
-| `dawnfetch set-default-theme <name>` | save default theme |
-| `dawnfetch doctor` | diagnostics |
-
-### Common flags
-
-| Flag | Description |
-|---|---|
-| `--theme <name>` | use theme for current run |
-| `--themes <path>` | use custom palettes file |
-| `--full` | collect fuller/slower info |
-| `--image <path>` | use image as logo |
-| `--no-logo` | hide logo |
-| `--no-color` | disable ansi colors |
-
-
-## Themes
-
-`dawnfetch` loads palettes from `themes.json`.
-
-Examples:
-
-```bash
-dawnfetch --list-themes
-dawnfetch --theme transgender
-dawnfetch preview-theme
-dawnfetch set-default-theme nonbinary
-```
-
-
-## Logos
-All logos in `/ascii` are from the `fastfetch-cli/fastfetch` repository.
-
-## Config
-
-Config file name is fixed:
-
-```text
-dawnfetch_config.json
-```
-
-Load/save behavior:
-
-- portable/local binary: prefers config next to executable when writable
-- system install: prefers user config path
-  - linux/macos: `~/.config/dawnfetch/dawnfetch_config.json` (or `$XDG_CONFIG_HOME/dawnfetch/dawnfetch_config.json`)
-  - windows: `%AppData%\dawnfetch\dawnfetch_config.json`
-
----
-
 ## Build
 
-Build scripts are in `build/`:
+All build scripts output binaries to the repo root `dist/` directory.
+
+Linux:
 
 ```bash
-./build/build-linux.sh
-./build/build-macos.sh
+bash build/build-linux.sh
 ```
 
-PowerShell for Windows:
+macOS:
+
+```bash
+bash build/build-macos.sh
+```
+
+Windows (PowerShell):
 
 ```powershell
-./build/build-windows.ps1
+powershell -File build/build-windows.ps1
 ```
+
+Expected outputs:
+
+- `dist/dawnfetch-linux-amd64`
+- `dist/dawnfetch-linux-arm64`
+- `dist/dawnfetch-linux-386`
+- `dist/dawnfetch-macos-amd64`
+- `dist/dawnfetch-macos-arm64`
+- `dist/dawnfetch-windows-amd64.exe`
+- `dist/dawnfetch-windows-386.exe`
+- `dist/dawnfetch-windows-arm64.exe`
+
+## Benchmark (100 runs)
+
+Run benchmark:
+
+```bash
+python3 bench/benchmark.py --runs 100 --warmup 1
+```
+
+Hyperfine results (100 runs):
+
+| Tool | Runs | Mean (ms) | Median (ms) | P95 (ms) | Min (ms) | Max (ms) | StdDev (ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| dawnfetch | 100 | 7.43 | 6.60 | 7.55 | 6.01 | 42.79 | 4.53 |
+| fastfetch | 100 | 11.91 | 10.99 | 14.33 | 10.13 | 52.03 | 5.24 |
+| hifetch | 100 | 17.55 | 17.10 | 17.75 | 16.60 | 56.41 | 3.93 |
+| macchina | 100 | 100.95 | 75.37 | 221.11 | 48.82 | 578.82 | 71.91 |
+| neofetch | 100 | 398.99 | 386.21 | 449.06 | 361.81 | 771.10 | 46.58 |
+| screenfetch | 100 | 848.98 | 687.62 | 1374.44 | 640.72 | 6485.31 | 626.92 |
+
+benchmark ran using hyperfine via: [`bench/benchmark.py`](bench/benchmark.py)

@@ -2,9 +2,18 @@
 "use strict";
 
 const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const ROOT = path.resolve(__dirname, "..");
 
 function run(command, args) {
-  const res = spawnSync(command, args, { stdio: "inherit", shell: false });
+  const res = spawnSync(command, args, {
+    stdio: "inherit",
+    shell: false,
+    cwd: ROOT,
+    env: process.env
+  });
   if (typeof res.status === "number" && res.status === 0) {
     return;
   }
@@ -12,15 +21,19 @@ function run(command, args) {
 }
 
 function installWindows() {
-  const cmd =
-    'irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex';
-  run("powershell", ["-NoProfile", "-Command", cmd]);
+  const script = path.join(ROOT, "cli", "install.ps1");
+  if (!fs.existsSync(script)) {
+    throw new Error(`missing installer script: ${script}`);
+  }
+  run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script]);
 }
 
 function installUnix() {
-  const cmd =
-    "curl -fsSL https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.sh | bash";
-  run("bash", ["-lc", cmd]);
+  const script = path.join(ROOT, "cli", "install.sh");
+  if (!fs.existsSync(script)) {
+    throw new Error(`missing installer script: ${script}`);
+  }
+  run("bash", [script]);
 }
 
 try {
@@ -36,4 +49,3 @@ try {
   );
   console.warn(String(err && err.message ? err.message : err));
 }
-

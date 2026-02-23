@@ -1,6 +1,6 @@
 {
   "name": "dawnfetch",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "🏳️‍⚧️ a fast, cross-platform system info CLI with beautiful theme support",
   "bin": {
     "dawnfetch": "npm/bin.cjs"
@@ -38,8 +38,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "dawnfetch": "^0.1.0"
   }
 }
