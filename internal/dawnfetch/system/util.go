@@ -1,5 +1,5 @@
 // this file contains reusable parsing and formatting helpers.
-package dawnfetch
+package system
 
 import (
 	"fmt"

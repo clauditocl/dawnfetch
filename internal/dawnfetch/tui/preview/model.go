@@ -1,10 +1,16 @@
 // this file provides an interactive theme preview tui.
-package dawnfetch
+package preview
 
 import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"dawnfetch/internal/dawnfetch/config"
+	"dawnfetch/internal/dawnfetch/core"
+	"dawnfetch/internal/dawnfetch/logo"
+	"dawnfetch/internal/dawnfetch/render"
+	"dawnfetch/internal/dawnfetch/system"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -23,44 +29,30 @@ type previewThemeModel struct {
 	height      int
 	noColor     bool
 	search      textinput.Model
-	fields      []Field
+	fields      []core.Field
 	chosenTheme string
 }
 
-func runPreviewThemeInteractive(themesPath string, noColor bool, initial string) int {
-	chosen, code := runThemeSelectionInteractive(themesPath, noColor, initial)
-	if code != 0 {
-		return code
-	}
-	if strings.TrimSpace(chosen) != "" {
-		return runSetDefaultTheme(chosen, themesPath)
-	}
-	return 0
-}
-
-func runThemeSelectionInteractive(themesPath string, noColor bool, initial string) (string, int) {
-	palettes, err := loadThemePalettes(themesPath)
+func RunThemeSelectionInteractive(themesPath string, noColor bool, initial string) (string, error) {
+	palettes, err := config.LoadThemePalettes(themesPath)
 	if err != nil {
-		printCLIError(err.Error(), "")
-		return "", 1
+		return "", err
 	}
 	if len(palettes) == 0 {
-		printCLIError("no themes available", "")
-		return "", 1
+		return "", fmt.Errorf("no themes available")
 	}
 
 	model := newPreviewThemeModel(palettes, noColor, initial)
 	program := tea.NewProgram(model, tea.WithAltScreen())
 	finalModel, err := program.Run()
 	if err != nil {
-		printCLIError(fmt.Sprintf("failed to run preview tui: %v", err), "")
-		return "", 1
+		return "", fmt.Errorf("failed to run preview tui: %w", err)
 	}
 	m, ok := finalModel.(previewThemeModel)
 	if !ok {
-		return "", 0
+		return "", nil
 	}
-	return strings.TrimSpace(m.chosenTheme), 0
+	return strings.TrimSpace(m.chosenTheme), nil
 }
 
 func newPreviewThemeModel(palettes map[string][]string, noColor bool, initial string) previewThemeModel {
@@ -82,10 +74,10 @@ func newPreviewThemeModel(palettes map[string][]string, noColor bool, initial st
 		themes:   names,
 		noColor:  noColor,
 		search:   s,
-		fields:   collect(true, false),
+		fields:   system.Collect(true, false),
 	}
 	if len(m.fields) == 0 {
-		m.fields = []Field{
+		m.fields = []core.Field{
 			{Label: "Operating System", Value: "Demo OS"},
 			{Label: "Kernel", Value: "demo-kernel"},
 			{Label: "Shell", Value: "demo-shell"},
@@ -382,8 +374,8 @@ func (m previewThemeModel) renderThemeList(width, height int) string {
 	for i := start; i < end; i++ {
 		name := m.filtered[i]
 		rawName := name
-		if displayWidth(rawName) > width-2 {
-			rawName = truncateRunes(rawName, width-2)
+		if render.DisplayWidth(rawName) > width-2 {
+			rawName = render.TruncateRunes(rawName, width-2)
 		}
 		prefix := "  "
 		line := rawName
@@ -426,13 +418,13 @@ func normalizePreviewLines(lines []string, width, height int) []string {
 
 	out := make([]string, 0, height)
 	for _, styled := range lines {
-		raw := stripANSI(styled)
-		if displayWidth(raw) > width {
+		raw := render.StripANSI(styled)
+		if render.DisplayWidth(raw) > width {
 			// keep rendering stable on resize; when clipped, prefer plain text over broken ansi.
-			raw = truncateRunes(raw, width)
+			raw = render.TruncateRunes(raw, width)
 			styled = raw
 		}
-		out = append(out, padRightStyled(styled, raw, width))
+		out = append(out, render.PadRightStyled(styled, raw, width))
 	}
 	for len(out) < height {
 		out = append(out, strings.Repeat(" ", width))
@@ -440,7 +432,7 @@ func normalizePreviewLines(lines []string, width, height int) []string {
 	return out
 }
 
-func buildThemePreviewLines(theme string, palette []string, fields []Field, noColor bool, maxWidth, maxHeight int) ([]string, bool) {
+func buildThemePreviewLines(theme string, palette []string, fields []core.Field, noColor bool, maxWidth, maxHeight int) ([]string, bool) {
 	if maxWidth < 20 {
 		maxWidth = 20
 	}
@@ -448,7 +440,7 @@ func buildThemePreviewLines(theme string, palette []string, fields []Field, noCo
 		maxHeight = 8
 	}
 
-	style := defaultStyleConfig()
+	style := core.DefaultStyleConfig()
 	style.Layout.LogoLeftPadding = 1
 	style.Layout.SideBySideGap = 3
 	style.Layout.OuterTopSpacing = 0
@@ -458,38 +450,38 @@ func buildThemePreviewLines(theme string, palette []string, fields []Field, noCo
 	if len(fields) > 12 {
 		fields = fields[:12]
 	}
-	labelW := labelWidth(fields)
-	logoSet := resolveLogoSet("", defaultBrandConfig())
-	sideBySide, logoSize, logoWidth, valueWidth := chooseLayout(logoSet, style, maxWidth, labelW)
-	logoLines, _ := renderLogoLines(logoSet, logoSize, palette, noColor)
-	infoLines := renderInfoLines(fields, style, labelW, valueWidth, palette, noColor)
-	pre := renderUserHostLines(style, palette, noColor)
-	infoWidth := renderedBlockWidth(infoLines, pre)
+	labelW := render.LabelWidth(fields)
+	logoSet := logo.ResolveLogoSet("", core.DefaultBrandConfig())
+	sideBySide, logoSize, logoWidth, valueWidth := render.ChooseLayout(logoSet, style, maxWidth, labelW)
+	logoLines, _ := render.RenderLogoLines(logoSet, logoSize, palette, noColor)
+	infoLines := render.RenderInfoLines(fields, style, labelW, valueWidth, palette, noColor)
+	pre := render.RenderUserHostLines(style, palette, noColor)
+	infoWidth := render.RenderedBlockWidth(infoLines, pre)
 	if sideBySide {
-		needed := style.Layout.LogoLeftPadding + logoWidth + style.Layout.SideBySideGap + infoWidth + sideBySideSafetyMargin()
+		needed := style.Layout.LogoLeftPadding + logoWidth + style.Layout.SideBySideGap + infoWidth + render.SideBySideSafetyMargin()
 		if needed > maxWidth {
 			sideBySide = false
 		}
 	}
 	if !sideBySide {
-		infoLines = renderInfoLines(fields, style, labelW, 0, palette, noColor)
-		infoWidth = renderedBlockWidth(infoLines, pre)
+		infoLines = render.RenderInfoLines(fields, style, labelW, 0, palette, noColor)
+		infoWidth = render.RenderedBlockWidth(infoLines, pre)
 	}
-	swatchLines := paletteSwatchLines(noColor, infoWidth, style)
+	swatchLines := render.PaletteSwatchLines(noColor, infoWidth, style)
 
 	lines := make([]string, 0, maxHeight)
 	header := "theme: " + theme
 	if !noColor && len(palette) > 0 {
-		header = colorLine(palette[0], false, header)
+		header = render.ColorLine(palette[0], false, header)
 	}
 	lines = append(lines, header, "")
 
 	if sideBySide {
-		right := make([]RenderedLine, 0, len(pre)+len(infoLines))
+		right := make([]core.RenderedLine, 0, len(pre)+len(infoLines))
 		right = append(right, pre...)
 		right = append(right, infoLines...)
-		left, right := alignSideBlocks(logoLines, right, "top")
-		total := maxInt(len(left), len(right))
+		left, right := render.AlignSideBlocks(logoLines, right, "top")
+		total := render.MaxInt(len(left), len(right))
 		leftPad := strings.Repeat(" ", style.Layout.LogoLeftPadding)
 		for i := 0; i < total; i++ {
 			lRaw := ""
@@ -502,7 +494,7 @@ func buildThemePreviewLines(theme string, palette []string, fields []Field, noCo
 			if i < len(right) {
 				rStyled = right[i].Styled
 			}
-			lines = append(lines, leftPad+padRightStyled(lStyled, lRaw, logoWidth)+strings.Repeat(" ", style.Layout.SideBySideGap)+rStyled)
+			lines = append(lines, leftPad+render.PadRightStyled(lStyled, lRaw, logoWidth)+strings.Repeat(" ", style.Layout.SideBySideGap)+rStyled)
 		}
 		for _, sw := range swatchLines {
 			lines = append(lines, leftPad+strings.Repeat(" ", logoWidth+style.Layout.SideBySideGap)+sw)

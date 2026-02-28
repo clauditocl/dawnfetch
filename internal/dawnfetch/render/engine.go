@@ -1,5 +1,5 @@
 // this file renders logos, fields, and color swatches to the terminal.
-package dawnfetch
+package render
 
 import (
 	"fmt"
@@ -10,6 +10,10 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"dawnfetch/internal/dawnfetch/core"
+	"dawnfetch/internal/dawnfetch/logo"
+	"dawnfetch/internal/dawnfetch/platform"
 )
 
 const (
@@ -20,15 +24,15 @@ const (
 
 var ansiStripRE = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
-func printInfo(fields []Field, cfg BrandConfig, style StyleConfig, themeName string, imagePath string, noColor bool, noLogo bool) {
+func Print(fields []core.Field, cfg core.BrandConfig, style core.StyleConfig, themeName string, imagePath string, noColor bool, noLogo bool) {
 	if os.Getenv("NO_COLOR") != "" {
 		noColor = true
 	}
 
-	paletteName := resolvePaletteName(themeName, cfg.Palettes)
+	paletteName := core.ResolvePaletteName(themeName, cfg.Palettes)
 	palette := cfg.Palettes[paletteName]
 	if len(palette) == 0 {
-		palette = cfg.Palettes[defaultPalette]
+		palette = cfg.Palettes[core.DefaultPalette]
 	}
 	if len(palette) == 0 {
 		palette = []string{"37"}
@@ -36,12 +40,12 @@ func printInfo(fields []Field, cfg BrandConfig, style StyleConfig, themeName str
 
 	terminalW := terminalWidth()
 	labelWidth := labelWidth(fields)
-	logoSet := LogoSet{}
+	logoSet := core.LogoSet{}
 	sideBySide, logoSize, logoWidth, valueWidth := false, "normal", 0, 0
-	logoLines := []RenderedLine(nil)
+	logoLines := []core.RenderedLine(nil)
 	logoEnabled := !noLogo && style.Layout.ShowLogo
 	if logoEnabled {
-		logoSet = resolveLogoSet(imagePath, cfg)
+		logoSet = logo.ResolveLogoSet(imagePath, cfg)
 		sideBySide, logoSize, logoWidth, valueWidth = chooseLayout(logoSet, style, terminalW, labelWidth)
 		logoLines, _ = renderLogoLines(logoSet, logoSize, palette, noColor)
 		// when logo and fields are stacked, make sure chosen logo variant fits the available width.
@@ -81,7 +85,7 @@ func printInfo(fields []Field, cfg BrandConfig, style StyleConfig, themeName str
 		if maxLogoWidth < logoWidth {
 			maxLogoWidth = logoWidth
 		}
-		if fittedLines, fittedWidth, ok := fitImageLogoForHeight(imagePath, logoWidth, maxLogoWidth, len(infoLines), noColor); ok {
+		if fittedLines, fittedWidth, ok := logo.FitImageLogoForHeight(imagePath, logoWidth, maxLogoWidth, len(infoLines), noColor); ok {
 			logoLines = fittedLines
 			if fittedWidth != logoWidth {
 				logoWidth = fittedWidth
@@ -117,7 +121,7 @@ func printInfo(fields []Field, cfg BrandConfig, style StyleConfig, themeName str
 	}
 
 	if logoEnabled && sideBySide {
-		rightBlock := make([]RenderedLine, 0, len(preFieldLines)+len(infoLines)+len(postFieldLines))
+		rightBlock := make([]core.RenderedLine, 0, len(preFieldLines)+len(infoLines)+len(postFieldLines))
 		rightBlock = append(rightBlock, preFieldLines...)
 		rightBlock = append(rightBlock, infoLines...)
 		rightBlock = append(rightBlock, postFieldLines...)
@@ -206,7 +210,7 @@ func printInfo(fields []Field, cfg BrandConfig, style StyleConfig, themeName str
 	emitRenderedOutput(coreLines, style)
 }
 
-func emitRenderedOutput(coreLines []string, style StyleConfig) {
+func emitRenderedOutput(coreLines []string, style core.StyleConfig) {
 	lines := coreLines
 	if style.Box.Show {
 		lines = wrapBoxLines(lines, style.Box)
@@ -222,7 +226,7 @@ func emitRenderedOutput(coreLines []string, style StyleConfig) {
 	}
 }
 
-func wrapBoxLines(lines []string, box StyleBox) []string {
+func wrapBoxLines(lines []string, box core.StyleBox) []string {
 	if len(lines) == 0 {
 		lines = []string{""}
 	}
@@ -274,7 +278,7 @@ func ensureLineColorReset(line string) string {
 	return line + "\x1b[0m"
 }
 
-func chooseLayout(logoSet LogoSet, style StyleConfig, terminalW, labelWidth int) (bool, string, int, int) {
+func chooseLayout(logoSet core.LogoSet, style core.StyleConfig, terminalW, labelWidth int) (bool, string, int, int) {
 	baseInfoWidth := 1 + labelWidth + 3 + style.Layout.MinValueWidth
 	if style.Layout.Mode == "stack" {
 		if terminalW < stackTinyWidth {
@@ -334,8 +338,8 @@ func sideBySideSafetyMargin() int {
 	return 12
 }
 
-func renderInfoLines(fields []Field, style StyleConfig, labelWidth int, valueWidth int, palette []string, noColor bool) []RenderedLine {
-	out := make([]RenderedLine, 0, len(fields))
+func renderInfoLines(fields []core.Field, style core.StyleConfig, labelWidth int, valueWidth int, palette []string, noColor bool) []core.RenderedLine {
+	out := make([]core.RenderedLine, 0, len(fields))
 	colorEnabled := !noColor && len(palette) > 0
 	colorizeFields := colorEnabled && style.Fields.Colorize
 	colorizeLabels := colorEnabled && style.Fields.ColorizeLabels
@@ -349,12 +353,12 @@ func renderInfoLines(fields []Field, style StyleConfig, labelWidth int, valueWid
 		separatorText := style.Text.Separator
 		raw := labelText + separatorText + value
 		if !colorizeFields && !colorizeLabels {
-			out = append(out, RenderedLine{Raw: raw, Styled: raw})
+			out = append(out, core.RenderedLine{Raw: raw, Styled: raw})
 			continue
 		}
 		color := palette[i%len(palette)]
 		if colorizeFields {
-			out = append(out, RenderedLine{Raw: raw, Styled: colorLine(color, false, raw)})
+			out = append(out, core.RenderedLine{Raw: raw, Styled: colorLine(color, false, raw)})
 			continue
 		}
 		styledLabel := labelText
@@ -365,7 +369,7 @@ func renderInfoLines(fields []Field, style StyleConfig, labelWidth int, valueWid
 		if accentColor != "" {
 			styledSep = colorLine(accentColor, false, separatorText)
 		}
-		out = append(out, RenderedLine{
+		out = append(out, core.RenderedLine{
 			Raw:    raw,
 			Styled: styledLabel + styledSep + value,
 		})
@@ -373,7 +377,7 @@ func renderInfoLines(fields []Field, style StyleConfig, labelWidth int, valueWid
 	return out
 }
 
-func renderUserHostLines(style StyleConfig, palette []string, noColor bool) []RenderedLine {
+func renderUserHostLines(style core.StyleConfig, palette []string, noColor bool) []core.RenderedLine {
 	if !style.Text.ShowUserHost {
 		return nil
 	}
@@ -382,12 +386,12 @@ func renderUserHostLines(style StyleConfig, palette []string, noColor bool) []Re
 		return nil
 	}
 	identity = " " + identity
-	out := make([]RenderedLine, 0, 2)
+	out := make([]core.RenderedLine, 0, 2)
 	labelColor, accentColor := labelPaletteColors(palette, noColor)
 	if labelColor == "" || (!style.Fields.Colorize && !style.Fields.ColorizeLabels) {
-		out = append(out, RenderedLine{Raw: identity, Styled: identity})
+		out = append(out, core.RenderedLine{Raw: identity, Styled: identity})
 	} else {
-		out = append(out, RenderedLine{
+		out = append(out, core.RenderedLine{
 			Raw:    identity,
 			Styled: colorizeIdentity(identity, labelColor, accentColor),
 		})
@@ -398,12 +402,12 @@ func renderUserHostLines(style StyleConfig, palette []string, noColor bool) []Re
 			barWidth = 1
 		}
 		bar := " " + strings.Repeat("-", barWidth)
-		out = append(out, RenderedLine{Raw: bar, Styled: bar})
+		out = append(out, core.RenderedLine{Raw: bar, Styled: bar})
 	}
 	return out
 }
 
-func userHostIdentity(style StyleConfig) string {
+func userHostIdentity(style core.StyleConfig) string {
 	user := sanitizeIdentityPart(style.Text.UserName)
 	if user == "" {
 		user = sanitizeIdentityPart(os.Getenv("USER"))
@@ -498,8 +502,8 @@ func colorizeIdentity(identity, labelColor, accentColor string) string {
 		colorLine(labelColor, false, right)
 }
 
-func renderFreeLines(lines []string, style StyleConfig, palette []string, noColor bool, width int) []RenderedLine {
-	out := make([]RenderedLine, 0, len(lines))
+func renderFreeLines(lines []string, style core.StyleConfig, palette []string, noColor bool, width int) []core.RenderedLine {
+	out := make([]core.RenderedLine, 0, len(lines))
 	for i, line := range lines {
 		raw := line
 		if width > 0 && style.Text.CenterTopLines {
@@ -511,35 +515,35 @@ func renderFreeLines(lines []string, style StyleConfig, palette []string, noColo
 		if strings.Contains(raw, "$") {
 			styled, clean, ok := applyPaletteMarkers(raw, palette, noColor, i)
 			if ok {
-				out = append(out, RenderedLine{Raw: clean, Styled: styled})
+				out = append(out, core.RenderedLine{Raw: clean, Styled: styled})
 				continue
 			}
 		}
 		if strings.Contains(raw, "\x1b[") {
 			clean := stripANSI(raw)
 			if noColor {
-				out = append(out, RenderedLine{Raw: clean, Styled: clean})
+				out = append(out, core.RenderedLine{Raw: clean, Styled: clean})
 			} else {
-				out = append(out, RenderedLine{Raw: clean, Styled: ensureLineColorReset(raw)})
+				out = append(out, core.RenderedLine{Raw: clean, Styled: ensureLineColorReset(raw)})
 			}
 			continue
 		}
 		color := palette[i%maxInt(1, len(palette))]
-		out = append(out, RenderedLine{Raw: raw, Styled: colorLine(color, noColor, raw)})
+		out = append(out, core.RenderedLine{Raw: raw, Styled: colorLine(color, noColor, raw)})
 	}
 	return out
 }
 
-func alignSideBlocks(left []RenderedLine, right []RenderedLine, align string) ([]RenderedLine, []RenderedLine) {
+func alignSideBlocks(left []core.RenderedLine, right []core.RenderedLine, align string) ([]core.RenderedLine, []core.RenderedLine) {
 	lh := len(left)
 	rh := len(right)
 	if lh == rh {
 		return left, right
 	}
-	padLines := func(n int) []RenderedLine {
-		p := make([]RenderedLine, n)
+	padLines := func(n int) []core.RenderedLine {
+		p := make([]core.RenderedLine, n)
 		for i := 0; i < n; i++ {
-			p[i] = RenderedLine{Raw: "", Styled: ""}
+			p[i] = core.RenderedLine{Raw: "", Styled: ""}
 		}
 		return p
 	}
@@ -571,11 +575,11 @@ func alignSideBlocks(left []RenderedLine, right []RenderedLine, align string) ([
 	return left, right
 }
 
-func alignRenderedBlock(lines []RenderedLine, width int, align string) []RenderedLine {
+func alignRenderedBlock(lines []core.RenderedLine, width int, align string) []core.RenderedLine {
 	if align == "left" || width <= 0 {
 		return lines
 	}
-	out := make([]RenderedLine, 0, len(lines))
+	out := make([]core.RenderedLine, 0, len(lines))
 	for _, line := range lines {
 		pad := 0
 		w := displayWidth(line.Raw)
@@ -591,7 +595,7 @@ func alignRenderedBlock(lines []RenderedLine, width int, align string) []Rendere
 			continue
 		}
 		spaces := strings.Repeat(" ", pad)
-		out = append(out, RenderedLine{
+		out = append(out, core.RenderedLine{
 			Raw:    spaces + line.Raw,
 			Styled: spaces + line.Styled,
 		})
@@ -599,8 +603,8 @@ func alignRenderedBlock(lines []RenderedLine, width int, align string) []Rendere
 	return out
 }
 
-func renderLogoLines(logo LogoSet, size string, palette []string, noColor bool) ([]RenderedLine, int) {
-	var lines []LogoLine
+func renderLogoLines(logo core.LogoSet, size string, palette []string, noColor bool) ([]core.RenderedLine, int) {
+	var lines []core.LogoLine
 	switch size {
 	case "tiny":
 		lines = logo.Tiny
@@ -610,10 +614,10 @@ func renderLogoLines(logo LogoSet, size string, palette []string, noColor bool) 
 		lines = logo.Normal
 	}
 	if len(lines) == 0 {
-		lines = []LogoLine{{Text: "dawnfetch", ColorIndex: 0}}
+		lines = []core.LogoLine{{Text: "dawnfetch", ColorIndex: 0}}
 	}
 
-	out := make([]RenderedLine, 0, len(lines))
+	out := make([]core.RenderedLine, 0, len(lines))
 	maxW := 0
 	if len(palette) == 0 {
 		palette = []string{"37"}
@@ -626,7 +630,7 @@ func renderLogoLines(logo LogoSet, size string, palette []string, noColor bool) 
 			if noColor {
 				styled = clean
 			}
-			out = append(out, RenderedLine{Raw: clean, Styled: styled})
+			out = append(out, core.RenderedLine{Raw: clean, Styled: styled})
 			if len(clean) > maxW {
 				maxW = displayWidth(clean)
 			}
@@ -635,7 +639,7 @@ func renderLogoLines(logo LogoSet, size string, palette []string, noColor bool) 
 		if strings.Contains(raw, "$") {
 			styled, clean, ok := applyPaletteMarkers(raw, palette, noColor, i)
 			if ok {
-				out = append(out, RenderedLine{Raw: clean, Styled: styled})
+				out = append(out, core.RenderedLine{Raw: clean, Styled: styled})
 				if w := displayWidth(clean); w > maxW {
 					maxW = w
 				}
@@ -648,7 +652,7 @@ func renderLogoLines(logo LogoSet, size string, palette []string, noColor bool) 
 		}
 		color := palette[idx%len(palette)]
 		styled := colorLine(color, noColor, raw)
-		out = append(out, RenderedLine{Raw: raw, Styled: styled})
+		out = append(out, core.RenderedLine{Raw: raw, Styled: styled})
 		if w := displayWidth(raw); w > maxW {
 			maxW = w
 		}
@@ -726,7 +730,7 @@ func markerColorCode(marker int, palette []string) string {
 	return palette[(marker-1)%len(palette)]
 }
 
-func labelWidth(fields []Field) int {
+func labelWidth(fields []core.Field) int {
 	max := 0
 	for _, f := range fields {
 		if len(f.Label) > max {
@@ -737,7 +741,7 @@ func labelWidth(fields []Field) int {
 }
 
 func terminalWidth() int {
-	if n := getTerminalWidth(); n > 0 {
+	if n := platform.GetTerminalWidth(); n > 0 {
 		if runtime.GOOS == "windows" {
 			return n + windowsWidthBoost
 		}
@@ -768,7 +772,7 @@ func displayWidth(s string) int {
 	return utf8.RuneCountInString(s)
 }
 
-func paletteSwatchLines(noColor bool, fieldWidth int, style StyleConfig) []string {
+func paletteSwatchLines(noColor bool, fieldWidth int, style core.StyleConfig) []string {
 	if noColor || !style.Swatch.Show {
 		return nil
 	}
@@ -828,7 +832,7 @@ func paletteSwatchLines(noColor bool, fieldWidth int, style StyleConfig) []strin
 		}
 		return out
 	}
-	for _, row := range stylePaletteRowNames(style) {
+	for _, row := range core.StylePaletteRowNames(style) {
 		if row == "normal" {
 			out = append(out, buildRow([]int{40, 41, 42, 43, 44, 45, 46, 47}))
 		} else if row == "bright" {
@@ -852,7 +856,7 @@ func truncateRunes(s string, max int) string {
 	return string(r[:max-1]) + "…"
 }
 
-func renderedBlockWidth(blocks ...[]RenderedLine) int {
+func renderedBlockWidth(blocks ...[]core.RenderedLine) int {
 	maxW := 0
 	for _, lines := range blocks {
 		for _, l := range lines {
@@ -862,4 +866,11 @@ func renderedBlockWidth(blocks ...[]RenderedLine) int {
 		}
 	}
 	return maxW
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

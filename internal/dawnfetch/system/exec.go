@@ -1,5 +1,5 @@
 // this file runs external commands with timeouts and safe defaults.
-package dawnfetch
+package system
 
 import (
 	"context"

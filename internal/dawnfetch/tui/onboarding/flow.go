@@ -1,11 +1,16 @@
 // this file handles the one-time first-run onboarding flow.
-package dawnfetch
+package onboarding
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"strings"
+
+	"dawnfetch/internal/dawnfetch/config"
+	"dawnfetch/internal/dawnfetch/platform"
+	"dawnfetch/internal/dawnfetch/render"
+	"dawnfetch/internal/dawnfetch/tui/preview"
 )
 
 const firstRunSuggestedTheme = "transgender"
@@ -35,61 +40,58 @@ type onboardingLine struct {
 	Styled string
 }
 
-func maybeRunFirstRunThemeSetup(themesPath string, noColor bool, isTTY bool) int {
+func RunIfFirstLaunch(themesPath string, noColor bool, isTTY bool, version string) error {
 	if !isTTY {
-		return 0
+		return nil
 	}
 
-	cfg, err := loadUserConfig()
+	cfg, err := config.LoadUserConfig()
 	if err != nil {
-		printCLIError(fmt.Sprintf("failed to load user config: %v", err), "")
-		return 1
+		return fmt.Errorf("failed to load user config: %w", err)
 	}
 	if cfg.Initialized {
-		return 0
+		return nil
 	}
 	// if a default theme already exists from older config format, assume setup as done.
 	if strings.TrimSpace(cfg.DefaultTheme) != "" {
 		cfg.Initialized = true
-		if err := saveUserConfig(cfg); err != nil {
-			printCLIError(fmt.Sprintf("failed to save user config: %v", err), "")
-			return 1
+		if err := config.SaveUserConfig(cfg); err != nil {
+			return fmt.Errorf("failed to save user config: %w", err)
 		}
-		return 0
+		return nil
 	}
 
-	showFirstRunWelcome(noColor)
+	showFirstRunWelcome(noColor, version)
 
-	chosen, code := runThemeSelectionInteractive(themesPath, noColor, firstRunSuggestedTheme)
-	if code != 0 {
-		return code
+	chosen, err := preview.RunThemeSelectionInteractive(themesPath, noColor, firstRunSuggestedTheme)
+	if err != nil {
+		return err
 	}
 
 	cfg.Initialized = true
 	if name := strings.TrimSpace(chosen); name != "" {
 		cfg.DefaultTheme = name
 	}
-	if err := saveUserConfig(cfg); err != nil {
-		printCLIError(fmt.Sprintf("failed to save user config: %v", err), "")
-		return 1
+	if err := config.SaveUserConfig(cfg); err != nil {
+		return fmt.Errorf("failed to save user config: %w", err)
 	}
 	clearOnboardingScreen(noColor)
-	return 0
+	return nil
 }
 
-func showFirstRunWelcome(noColor bool) {
+func showFirstRunWelcome(noColor bool, version string) {
 	ansiOK := false
 	if !noColor {
 		// enable ansi early so the welcome screen can render nicely on supported terminals.
-		ansiOK = enableANSIIfSupported()
+		ansiOK = platform.EnableANSIIfSupported()
 	}
 	useColor := !noColor && ansiOK
 
-	width := terminalWidth()
+	width := platform.GetTerminalWidth()
 	if width <= 0 {
 		width = 100
 	}
-	height := getTerminalHeight()
+	height := platform.GetTerminalHeight()
 	if height <= 0 {
 		height = 30
 	}
@@ -107,11 +109,11 @@ func showFirstRunWelcome(noColor bool) {
 	lines := make([]string, 0, len(firstRunWelcomeASCII)+len(intro))
 	lines = append(lines, firstRunWelcomeASCII...)
 	lines = append(lines, intro...)
-	footer := buildOnboardingFooter(width, useColor, ansiOK)
+	footer := buildOnboardingFooter(width, useColor, ansiOK, version)
 
 	maxLine := 0
 	for _, l := range lines {
-		w := displayWidth(stripANSI(l))
+		w := render.DisplayWidth(render.StripANSI(l))
 		if w > maxLine {
 			maxLine = w
 		}
@@ -139,27 +141,27 @@ func showFirstRunWelcome(noColor bool) {
 		case i < len(firstRunWelcomeASCII):
 			if useColor {
 				code := firstRunTransColors[i%len(firstRunTransColors)]
-				line = colorLine(code, false, raw)
+				line = render.ColorLine(code, false, raw)
 			}
 		case strings.EqualFold(strings.TrimSpace(raw), "welcome to dawnfetch! <3"):
 			if useColor {
-				line = colorLine("1;97", false, raw)
+				line = render.ColorLine("1;97", false, raw)
 			}
 		case strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "dawnfetch is"):
 			if useColor {
-				line = colorLine("38;2;91;206;250", false, raw)
+				line = render.ColorLine("38;2;91;206;250", false, raw)
 			}
 		case strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "before your first run"):
 			if useColor {
-				line = colorLine("38;2;91;206;250", false, raw)
+				line = render.ColorLine("38;2;91;206;250", false, raw)
 			}
 		case strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "press enter"):
 			if useColor {
-				line = colorLine("90", false, raw)
+				line = render.ColorLine("90", false, raw)
 			}
 		default:
 			if useColor && strings.TrimSpace(raw) != "" {
-				line = colorLine("38;2;156;163;175", false, raw)
+				line = render.ColorLine("38;2;156;163;175", false, raw)
 			}
 		}
 
@@ -182,7 +184,7 @@ func showFirstRunWelcome(noColor bool) {
 	}
 
 	for _, l := range footer {
-		pad := (width - displayWidth(l.Plain)) / 2
+		pad := (width - render.DisplayWidth(l.Plain)) / 2
 		if pad < 0 {
 			pad = 0
 		}
@@ -195,7 +197,7 @@ func showFirstRunWelcome(noColor bool) {
 }
 
 func clearOnboardingScreen(noColor bool) {
-	if !noColor && enableANSIIfSupported() {
+	if !noColor && platform.EnableANSIIfSupported() {
 		fmt.Print("\x1b[2J\x1b[H")
 		return
 	}
@@ -203,23 +205,23 @@ func clearOnboardingScreen(noColor bool) {
 	fmt.Print(strings.Repeat("\n", 40))
 }
 
-func buildOnboardingFooter(width int, useColor bool, ansiOK bool) []onboardingLine {
+func buildOnboardingFooter(width int, useColor bool, ansiOK bool, version string) []onboardingLine {
 	sepPlain := " | "
 	sepStyled := sepPlain
 	if useColor {
-		sepStyled = colorLine("90", false, sepPlain)
+		sepStyled = render.ColorLine("90", false, sepPlain)
 	}
 
 	versionPlain := fmt.Sprintf("version %s", version)
 	versionStyled := versionPlain
 	if useColor {
-		versionStyled = colorLine("38;2;91;206;250", false, versionPlain)
+		versionStyled = render.ColorLine("38;2;91;206;250", false, versionPlain)
 	}
 
 	authorNamePlain := firstRunAuthor
 	authorNameStyled := authorNamePlain
 	if useColor {
-		authorNameStyled = colorLine("38;2;245;169;184", false, authorNamePlain)
+		authorNameStyled = render.ColorLine("38;2;245;169;184", false, authorNamePlain)
 	}
 	if ansiOK {
 		authorNameStyled = osc8Link(firstRunGitHubURL, authorNameStyled)
@@ -247,7 +249,7 @@ func buildOnboardingFooter(width int, useColor bool, ansiOK bool) []onboardingLi
 	compactVersionPlain := fmt.Sprintf("v%s", version)
 	compactVersionStyled := compactVersionPlain
 	if useColor {
-		compactVersionStyled = colorLine("38;2;91;206;250", false, compactVersionPlain)
+		compactVersionStyled = render.ColorLine("38;2;91;206;250", false, compactVersionPlain)
 	}
 
 	compactPrimaryPlain := compactVersionPlain + sepPlain + "by " + firstRunAuthor
@@ -255,16 +257,16 @@ func buildOnboardingFooter(width int, useColor bool, ansiOK bool) []onboardingLi
 	compactPrimaryStyled += "by " + authorNameStyled
 
 	switch {
-	case width >= 2 && displayWidth(fullPrimaryPlain) <= width-2:
+	case width >= 2 && render.DisplayWidth(fullPrimaryPlain) <= width-2:
 		return []onboardingLine{
 			{Plain: fullPrimaryPlain, Styled: fullPrimaryStyled},
 		}
-	case width >= 2 && displayWidth(primaryPlain) <= width-2:
+	case width >= 2 && render.DisplayWidth(primaryPlain) <= width-2:
 		return []onboardingLine{
 			{Plain: primaryPlain, Styled: primaryStyled},
 			{Plain: githubLabelPlain + " " + urlPlain, Styled: githubLabelStyled + " " + urlStyled},
 		}
-	case width >= 2 && displayWidth(compactPrimaryPlain) <= width-2:
+	case width >= 2 && render.DisplayWidth(compactPrimaryPlain) <= width-2:
 		return []onboardingLine{
 			{Plain: compactPrimaryPlain, Styled: compactPrimaryStyled},
 			{Plain: githubLabelPlain + " " + urlPlain, Styled: githubLabelStyled + " " + urlStyled},

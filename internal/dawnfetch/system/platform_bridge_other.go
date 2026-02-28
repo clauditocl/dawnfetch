@@ -1,7 +1,7 @@
 //go:build !windows
 
 // this file provides non-windows stubs for windows-only api helpers.
-package dawnfetch
+package system
 
 func windowsUptimeSecondsAPI() int64 {
 	return 0

@@ -1,5 +1,5 @@
 // this file contains --full output collectors.
-package dawnfetch
+package system
 
 import (
 	"fmt"

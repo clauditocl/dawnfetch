@@ -1,5 +1,5 @@
 // this file collects a live windows snapshot used by multiple fields.
-package dawnfetch
+package system
 
 import (
 	"encoding/json"

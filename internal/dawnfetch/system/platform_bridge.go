@@ -1,5 +1,5 @@
 // this file bridges common platform-specific implementations into the dawnfetch package.
-package dawnfetch
+package system
 
 import (
 	"runtime"

@@ -1,5 +1,5 @@
 // this file implements utility subcommands like doctor and theme preview.
-package dawnfetch
+package cli
 
 import (
 	"fmt"
@@ -8,7 +8,30 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"dawnfetch/internal/dawnfetch/config"
+	"dawnfetch/internal/dawnfetch/core"
+	"dawnfetch/internal/dawnfetch/render"
+	"dawnfetch/internal/dawnfetch/system"
+	"dawnfetch/internal/dawnfetch/tui/preview"
 )
+
+func runListThemes(themesPath string) int {
+	palettes, err := config.LoadThemePalettes(themesPath)
+	if err != nil {
+		printCLIError(err.Error(), "")
+		return 1
+	}
+	names := make([]string, 0, len(palettes))
+	for name := range palettes {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		fmt.Println(name)
+	}
+	return 0
+}
 
 func runDoctor(themesPath string) int {
 	fmt.Println("dawnfetch doctor")
@@ -16,10 +39,10 @@ func runDoctor(themesPath string) int {
 
 	fmt.Printf("Version            : %s\n", version)
 	fmt.Printf("Platform           : %s/%s\n", runtime.GOOS, runtime.GOARCH)
-	fmt.Printf("Terminal Width     : %d\n", terminalWidth())
+	fmt.Printf("Terminal Width     : %d\n", render.TerminalWidth())
 	fmt.Printf("Themes File        : %s\n", themesPath)
 
-	palettes, err := loadThemePalettes(themesPath)
+	palettes, err := config.LoadThemePalettes(themesPath)
 	if err != nil {
 		fmt.Printf("Themes Status      : error (%v)\n", err)
 		return 1
@@ -27,7 +50,7 @@ func runDoctor(themesPath string) int {
 		fmt.Printf("Themes Status      : ok (%d themes)\n", len(palettes))
 	}
 
-	cfgPath, cfgPathErr := userConfigPath()
+	cfgPath, cfgPathErr := config.UserConfigPath()
 	if cfgPathErr != nil {
 		fmt.Printf("User Config        : error (%v)\n", cfgPathErr)
 	} else {
@@ -40,13 +63,13 @@ func runDoctor(themesPath string) int {
 		}
 	}
 
-	defTheme := loadPersistedDefaultTheme(defaultPalette)
-	fmt.Printf("Default Theme      : %s\n", resolvePaletteName(defTheme, palettes))
+	defTheme := config.LoadPersistedDefaultTheme(core.DefaultPalette)
+	fmt.Printf("Default Theme      : %s\n", core.ResolvePaletteName(defTheme, palettes))
 	fmt.Printf("ASCII Logo Dir     : %s\n", asciiDirStatus())
 
 	fmt.Printf("Image Formats      : png jpg jpeg webp gif bmp tiff (svg unsupported)\n")
-	fmt.Printf("Detected OS        : %s\n", osNameVersion())
-	fmt.Printf("Detected Shell     : %s\n", shellInfo(true))
+	fmt.Printf("Detected OS        : %s\n", system.OSNameVersion())
+	fmt.Printf("Detected Shell     : %s\n", system.ShellInfo(true))
 
 	if runtime.GOOS == "linux" {
 		linuxDeps := []string{"xfconf-query", "gsettings", "xrandr", "lspci", "ip"}
@@ -64,7 +87,15 @@ func runDoctor(themesPath string) int {
 
 func runPreviewTheme(themeName string, themesPath string, noColor bool) int {
 	if stdoutIsTerminal() {
-		return runPreviewThemeInteractive(themesPath, noColor, themeName)
+		chosen, err := preview.RunThemeSelectionInteractive(themesPath, noColor, themeName)
+		if err != nil {
+			printCLIError(err.Error(), "")
+			return 1
+		}
+		if strings.TrimSpace(chosen) != "" {
+			return runSetDefaultTheme(chosen, themesPath)
+		}
+		return 0
 	}
 	if strings.TrimSpace(themeName) == "" {
 		printCLIError("preview-theme needs a theme name in non-interactive mode", "run `dawnfetch preview-theme <name>`")
@@ -74,12 +105,12 @@ func runPreviewTheme(themeName string, themesPath string, noColor bool) int {
 }
 
 func runPreviewThemeStatic(themeName string, themesPath string, noColor bool) int {
-	palettes, err := loadThemePalettes(themesPath)
+	palettes, err := config.LoadThemePalettes(themesPath)
 	if err != nil {
 		printCLIError(err.Error(), "")
 		return 1
 	}
-	name, ok := resolvePaletteNameStrict(themeName, palettes)
+	name, ok := core.ResolvePaletteNameStrict(themeName, palettes)
 	if !ok {
 		printCLIError(fmt.Sprintf("unknown theme %q", strings.TrimSpace(themeName)), "run `dawnfetch --list-themes` to see valid themes")
 		return 2
@@ -88,57 +119,57 @@ func runPreviewThemeStatic(themeName string, themesPath string, noColor bool) in
 	fmt.Printf("Theme Preview: %s\n\n", name)
 	for i, c := range p {
 		label := fmt.Sprintf("Color %d", i+1)
-		fmt.Println(colorLine(c, noColor, label))
+		fmt.Println(render.ColorLine(c, noColor, label))
 	}
 
-	demo := []Field{
+	demo := []core.Field{
 		{Label: "Operating System", Value: "Demo OS 1.0"},
 		{Label: "Kernel", Value: "demo-kernel-0.1"},
 		{Label: "Shell", Value: "demo-shell"},
 		{Label: "Memory", Value: "1.2GiB / 8.0GiB"},
 	}
-	style := defaultStyleConfig()
+	style := core.DefaultStyleConfig()
 	style.Fields.Colorize = true
 	style.Text.ShowUserHost = false
 	fmt.Println()
-	for _, line := range renderInfoLines(demo, style, labelWidth(demo), 44, p, noColor) {
+	for _, line := range render.RenderInfoLines(demo, style, render.LabelWidth(demo), 44, p, noColor) {
 		fmt.Println(line.Styled)
 	}
-	for _, sw := range paletteSwatchLines(noColor, 44, style) {
+	for _, sw := range render.PaletteSwatchLines(noColor, 44, style) {
 		fmt.Println(sw)
 	}
 	return 0
 }
 
 func runSetDefaultTheme(themeName string, themesPath string) int {
-	palettes, err := loadThemePalettes(themesPath)
+	palettes, err := config.LoadThemePalettes(themesPath)
 	if err != nil {
 		printCLIError(err.Error(), "")
 		return 1
 	}
-	name, ok := resolvePaletteNameStrict(themeName, palettes)
+	name, ok := core.ResolvePaletteNameStrict(themeName, palettes)
 	if !ok {
 		printCLIError(fmt.Sprintf("unknown theme %q", strings.TrimSpace(themeName)), "run `dawnfetch --list-themes` to see valid themes")
 		return 2
 	}
-	cfg, err := loadUserConfig()
+	cfg, err := config.LoadUserConfig()
 	if err != nil {
 		printCLIError(fmt.Sprintf("failed to load user config: %v", err), "")
 		return 1
 	}
 	cfg.DefaultTheme = name
 	cfg.Initialized = true
-	if err := saveUserConfig(cfg); err != nil {
+	if err := config.SaveUserConfig(cfg); err != nil {
 		printCLIError(fmt.Sprintf("failed to save user config: %v", err), "")
 		return 1
 	}
-	path, _ := userConfigPath()
+	path, _ := config.UserConfigPath()
 	fmt.Printf("default theme set to %q (%s)\n", name, path)
 	return 0
 }
 
 func asciiDirStatus() string {
-	for _, path := range logoTextDirCandidates() {
+	for _, path := range config.LogoTextDirCandidates() {
 		ents, err := os.ReadDir(path)
 		if err != nil {
 			continue
@@ -162,7 +193,7 @@ func commandStatuses(names []string) string {
 	parts := make([]string, 0, len(names))
 	for _, n := range names {
 		status := "missing"
-		if commandExists(n) {
+		if system.CommandExists(n) {
 			status = "ok"
 		}
 		parts = append(parts, n+"="+status)

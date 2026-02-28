@@ -1,7 +1,7 @@
 //go:build windows
 
 // this file bridges windows-only api helpers into the dawnfetch package.
-package dawnfetch
+package system
 
 import "dawnfetch/internal/dawnfetch/platform"
 

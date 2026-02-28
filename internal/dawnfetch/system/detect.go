@@ -1,24 +1,26 @@
 // this file detects os metadata for logo/theme selection.
-package dawnfetch
+package system
 
 import (
 	"os"
 	"runtime"
 	"strings"
+
+	"dawnfetch/internal/dawnfetch/core"
 )
 
-func linuxOSRelease() osReleaseInfo {
+func linuxOSRelease() core.OSReleaseInfo {
 	return parseOSRelease()
 }
 
-func parseOSRelease() osReleaseInfo {
+func parseOSRelease() core.OSReleaseInfo {
 	paths := []string{"/etc/os-release", "/usr/lib/os-release"}
 	for _, p := range paths {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			continue
 		}
-		out := osReleaseInfo{}
+		out := core.OSReleaseInfo{}
 		for _, line := range strings.Split(string(b), "\n") {
 			line = strings.TrimSpace(line)
 			if line == "" || strings.HasPrefix(line, "#") {
@@ -41,10 +43,10 @@ func parseOSRelease() osReleaseInfo {
 		}
 		return out
 	}
-	return osReleaseInfo{}
+	return core.OSReleaseInfo{}
 }
 
-func osLogoKey(cfg BrandConfig) string {
+func osLogoKey(cfg core.BrandConfig) string {
 	switch runtime.GOOS {
 	case "linux":
 		rel := linuxOSRelease()
@@ -72,4 +74,12 @@ func osLogoKey(cfg BrandConfig) string {
 		}
 	}
 	return "generic"
+}
+
+func LinuxOSRelease() core.OSReleaseInfo {
+	return linuxOSRelease()
+}
+
+func OSLogoKey(cfg core.BrandConfig) string {
+	return osLogoKey(cfg)
 }

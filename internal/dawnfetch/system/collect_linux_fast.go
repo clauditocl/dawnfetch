@@ -1,5 +1,5 @@
 // this file has linux fast-path probes used by default fast mode.
-package dawnfetch
+package system
 
 import (
 	"bytes"

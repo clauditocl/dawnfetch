@@ -1,6 +1,6 @@
 // this file defines the built-in render style used by dawnfetch.
 // style customization from external files is intentionally disabled.
-package dawnfetch
+package core
 
 import "strings"
 
@@ -86,7 +86,7 @@ type StyleBox struct {
 	PaddingY    int
 }
 
-func defaultStyleConfig() StyleConfig {
+func DefaultStyleConfig() StyleConfig {
 	return StyleConfig{
 		Version: 1,
 		Defaults: StyleDefaults{
@@ -114,10 +114,10 @@ func defaultStyleConfig() StyleConfig {
 			ShowUserHostBar: true,
 		},
 		Fields: StyleFields{
-			Rename: map[string]string{},
-			Titles: map[string]string{},
-			Prefix: map[string]string{},
-			Suffix: map[string]string{},
+			Rename:         map[string]string{},
+			Titles:         map[string]string{},
+			Prefix:         map[string]string{},
+			Suffix:         map[string]string{},
 			Colorize:       false,
 			ColorizeLabels: true,
 		},
@@ -142,7 +142,7 @@ func defaultStyleConfig() StyleConfig {
 	}
 }
 
-func stylePaletteRowNames(style StyleConfig) []string {
+func StylePaletteRowNames(style StyleConfig) []string {
 	rows := make([]string, 0, len(style.Swatch.Rows))
 	for _, r := range style.Swatch.Rows {
 		v := strings.ToLower(strings.TrimSpace(r))

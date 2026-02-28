@@ -1,5 +1,5 @@
 // this file centralizes path resolution for bundled assets.
-package dawnfetch
+package config
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func executableDir() string {
+func ExecutableDir() string {
 	exePath, err := os.Executable()
 	if err != nil {
 		return ""
@@ -16,7 +16,7 @@ func executableDir() string {
 	return filepath.Dir(exePath)
 }
 
-func themeFileCandidates(path string) []string {
+func ThemeFileCandidates(path string) []string {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		path = "themes.json"
@@ -43,7 +43,7 @@ func themeFileCandidates(path string) []string {
 	add(path)
 
 	// executable relative
-	exeDir := executableDir()
+	exeDir := ExecutableDir()
 	if exeDir != "" {
 		add(filepath.Join(exeDir, path))
 		add(filepath.Join(exeDir, "assets", path))
@@ -60,7 +60,7 @@ func themeFileCandidates(path string) []string {
 	return out
 }
 
-func logoTextDirCandidates() []string {
+func LogoTextDirCandidates() []string {
 	out := make([]string, 0, 16)
 	seen := map[string]struct{}{}
 	add := func(p string) {
@@ -78,7 +78,7 @@ func logoTextDirCandidates() []string {
 	add("./ascii")
 	add("./logos")
 
-	exeDir := executableDir()
+	exeDir := ExecutableDir()
 	if exeDir != "" {
 		add(filepath.Join(exeDir, "ascii"))
 		add(filepath.Join(exeDir, "logos"))
@@ -100,8 +100,7 @@ func logoTextDirCandidates() []string {
 	return out
 }
 
-func logoImageDirCandidates() []string {
+func LogoImageDirCandidates() []string {
 	// image lookup reuses the same candidate roots as text logos.
-	return logoTextDirCandidates()
+	return LogoTextDirCandidates()
 }
-

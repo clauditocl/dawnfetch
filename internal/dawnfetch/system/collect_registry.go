@@ -1,11 +1,13 @@
 // this file wires field collection and controls fast/full collector modes.
-package dawnfetch
+package system
 
 import (
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"dawnfetch/internal/dawnfetch/core"
 )
 
 var fastCollectMode atomic.Bool
@@ -70,7 +72,7 @@ func collectSwapUsageSummary(_ bool) string { return swapUsageSummary() }
 func collectDiskRootUsageDetailed(_ bool) string { return diskRootUsageDetailed() }
 func collectLocalIPSummary(_ bool) string { return localIPSummary() }
 
-func collect(fast bool, full bool) []Field {
+func collect(fast bool, full bool) []core.Field {
 	fastCollectMode.Store(fast && !full)
 	windowsSlowProbeMode.Store(runtime.GOOS == "windows" && full)
 	defer fastCollectMode.Store(false)
@@ -81,7 +83,7 @@ func collect(fast bool, full bool) []Field {
 		items = fullCollectors
 	}
 
-	fields := make([]Field, len(items))
+	fields := make([]core.Field, len(items))
 	var wg sync.WaitGroup
 	wg.Add(len(items))
 	for i := range items {
@@ -92,12 +94,16 @@ func collect(fast bool, full bool) []Field {
 			if strings.TrimSpace(v) == "" {
 				v = "unknown"
 			}
-			fields[i] = Field{Label: items[i].label, Value: v}
+			fields[i] = core.Field{Label: items[i].label, Value: v}
 		}()
 	}
 	wg.Wait()
 
 	return fields
+}
+
+func Collect(fast bool, full bool) []core.Field {
+	return collect(fast, full)
 }
 
 func windowsSlowProbesEnabled() bool {

@@ -1,5 +1,5 @@
 // this file contains default field collectors and shared helpers.
-package dawnfetch
+package system
 
 import (
 	"bufio"
@@ -429,6 +429,9 @@ func visualSettings(fast bool) string {
 				return "theme Dark"
 			}
 		}
+		if theme, ok := windowsThemeFromRegistry(); ok {
+			return theme
+		}
 		if fast || !windowsSlowProbesEnabled() {
 			return "theme unknown"
 		}
@@ -438,6 +441,36 @@ func visualSettings(fast bool) string {
 		}
 	}
 	return "unknown"
+}
+
+func windowsThemeFromRegistry() (string, bool) {
+	out, _ := runCmd(
+		650*time.Millisecond,
+		"reg",
+		"query",
+		`HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`,
+		"/v",
+		"AppsUseLightTheme",
+	)
+	if strings.TrimSpace(out) == "" {
+		return "", false
+	}
+	re := regexp.MustCompile(`(?i)\bAppsUseLightTheme\b[^\n\r]*\b0x([0-9a-f]+)\b`)
+	m := re.FindStringSubmatch(out)
+	if len(m) != 2 {
+		return "", false
+	}
+	v, err := strconv.ParseInt(m[1], 16, 64)
+	if err != nil {
+		return "", false
+	}
+	if v == 1 {
+		return "theme Light", true
+	}
+	if v == 0 {
+		return "theme Dark", true
+	}
+	return "", false
 }
 
 func linuxThemeFromFiles() []string {
@@ -789,6 +822,9 @@ func gpuInfo(fast bool) string {
 		if wf := windowsFacts(); wf.Valid && len(wf.GPUNames) > 0 {
 			return strings.Join(unique(wf.GPUNames), " | ")
 		}
+		if out := windowsGPUFromCommands(fast); out != "" {
+			return out
+		}
 		if fast || !windowsSlowProbesEnabled() {
 			return "unknown"
 		}
@@ -801,6 +837,39 @@ func gpuInfo(fast bool) string {
 		return "unknown"
 	}
 	return "unknown"
+}
+
+func windowsGPUFromCommands(fast bool) string {
+	if commandExists("wmic") {
+		timeout := 1200 * time.Millisecond
+		if fast {
+			timeout = 700 * time.Millisecond
+		}
+		out, _ := runCmd(timeout, "wmic", "path", "win32_VideoController", "get", "Name")
+		if strings.TrimSpace(out) != "" {
+			names := make([]string, 0, 4)
+			for _, line := range strings.Split(out, "\n") {
+				l := strings.TrimSpace(line)
+				if l == "" || strings.EqualFold(l, "Name") {
+					continue
+				}
+				names = append(names, l)
+			}
+			if len(names) > 0 {
+				return strings.Join(unique(names), " | ")
+			}
+		}
+	}
+
+	timeout := 1800 * time.Millisecond
+	if fast {
+		timeout = 900 * time.Millisecond
+	}
+	ps := "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name) -join ' | '"
+	if out, _ := runCmd(timeout, "powershell", "-NoProfile", "-Command", ps); strings.TrimSpace(out) != "" {
+		return strings.TrimSpace(out)
+	}
+	return ""
 }
 
 func memoryInfo() string {

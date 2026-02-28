@@ -1,5 +1,5 @@
 // this file resolves ascii/image logo sources and platform logo routing.
-package dawnfetch
+package logo
 
 import (
 	"fmt"
@@ -14,6 +14,11 @@ import (
 	"strconv"
 	"strings"
 
+	"dawnfetch/internal/dawnfetch/config"
+	"dawnfetch/internal/dawnfetch/core"
+	"dawnfetch/internal/dawnfetch/platform"
+	"dawnfetch/internal/dawnfetch/system"
+
 	"github.com/BigJk/imeji"
 	_ "golang.org/x/image/bmp"
 	_ "golang.org/x/image/tiff"
@@ -22,6 +27,7 @@ import (
 
 var (
 	distroKeyRE = regexp.MustCompile(`[^a-z0-9._-]+`)
+	ansiRE      = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 )
 
 const (
@@ -29,7 +35,7 @@ const (
 	macOSSmallLogoHeight = 36
 )
 
-func resolveLogoSet(imagePath string, cfg BrandConfig) LogoSet {
+func ResolveLogoSet(imagePath string, cfg core.BrandConfig) core.LogoSet {
 	if p := strings.TrimSpace(imagePath); p != "" {
 		if ls, err := imageLogoSet(p); err == nil {
 			return ls
@@ -54,10 +60,10 @@ func resolveLogoSet(imagePath string, cfg BrandConfig) LogoSet {
 		}
 	}
 
-	rel := linuxOSRelease()
+	rel := system.LinuxOSRelease()
 	distroID := rel.ID
 	if distroID == "" {
-		distroID = osLogoKey(cfg)
+		distroID = system.OSLogoKey(cfg)
 	}
 
 	for _, key := range distroCandidates(distroID, rel.IDLike) {
@@ -72,19 +78,19 @@ func resolveLogoSet(imagePath string, cfg BrandConfig) LogoSet {
 		}
 	}
 
-	k := osLogoKey(cfg)
+	k := system.OSLogoKey(cfg)
 	if ls, ok := cfg.Logos[k]; ok {
 		return ls
 	}
 	if ls, ok := cfg.Logos["generic"]; ok {
 		return ls
 	}
-	return LogoSet{Tiny: []LogoLine{{Text: "dawnfetch", ColorIndex: 0}}}
+	return core.LogoSet{Tiny: []core.LogoLine{{Text: "dawnfetch", ColorIndex: 0}}}
 }
 
-func macOSLogoSet() (LogoSet, bool) {
-	w := getTerminalWidth()
-	h := getTerminalHeight()
+func macOSLogoSet() (core.LogoSet, bool) {
+	w := platform.GetTerminalWidth()
+	h := platform.GetTerminalHeight()
 	if (w > 0 && w < macOSSmallLogoWidth) || (h > 0 && h < macOSSmallLogoHeight) {
 		if ls, ok := loadTextLogoSetForKey("macos_small"); ok {
 			return ls, true
@@ -96,34 +102,34 @@ func macOSLogoSet() (LogoSet, bool) {
 	if ls, ok := loadTextLogoSetForKey("darwin"); ok {
 		return ls, true
 	}
-	return LogoSet{}, false
+	return core.LogoSet{}, false
 }
 
-func textLogoSet(normal []string, small []string) LogoSet {
+func textLogoSet(normal []string, small []string) core.LogoSet {
 	if len(normal) == 0 {
 		normal = []string{"dawnfetch"}
 	}
 	if len(small) == 0 {
 		small = normal
 	}
-	mk := func(src []string) []LogoLine {
-		out := make([]LogoLine, 0, len(src))
+	mk := func(src []string) []core.LogoLine {
+		out := make([]core.LogoLine, 0, len(src))
 		for i, s := range src {
-			out = append(out, LogoLine{Text: s, ColorIndex: i})
+			out = append(out, core.LogoLine{Text: s, ColorIndex: i})
 		}
 		return out
 	}
-	return LogoSet{
+	return core.LogoSet{
 		Normal:  mk(normal),
 		Compact: mk(small),
 		Tiny:    mk(small),
 	}
 }
 
-func loadTextLogoSetForKey(key string) (LogoSet, bool) {
+func loadTextLogoSetForKey(key string) (core.LogoSet, bool) {
 	var normal []string
 	var small []string
-	dirs := logoTextDirCandidates()
+	dirs := config.LogoTextDirCandidates()
 	seen := map[string]struct{}{}
 	for _, dir := range dirs {
 		if _, ok := seen[dir]; ok {
@@ -141,7 +147,7 @@ func loadTextLogoSetForKey(key string) (LogoSet, bool) {
 		}
 	}
 	if len(normal) == 0 && len(small) == 0 {
-		return LogoSet{}, false
+		return core.LogoSet{}, false
 	}
 	return textLogoSet(normal, small), true
 }
@@ -158,22 +164,22 @@ func readLogoTextFile(path string) []string {
 	return lines
 }
 
-func imageLogoSet(path string) (LogoSet, error) {
+func imageLogoSet(path string) (core.LogoSet, error) {
 	// Keep startup fast: render once here and let layout-specific fitting adjust if needed.
 	normal, err := renderImageANSI(path, 26)
 	if err != nil {
-		return LogoSet{}, err
+		return core.LogoSet{}, err
 	}
 
-	mk := func(src []string) []LogoLine {
-		out := make([]LogoLine, 0, len(src))
+	mk := func(src []string) []core.LogoLine {
+		out := make([]core.LogoLine, 0, len(src))
 		for _, s := range src {
-			out = append(out, LogoLine{Text: s, RawANSI: true})
+			out = append(out, core.LogoLine{Text: s, RawANSI: true})
 		}
 		return out
 	}
 	one := mk(normal)
-	return LogoSet{Normal: one, Compact: one, Tiny: one}, nil
+	return core.LogoSet{Normal: one, Compact: one, Tiny: one}, nil
 }
 
 func renderImageANSI(path string, width int) ([]string, error) {
@@ -202,7 +208,7 @@ func renderImageANSI(path string, width int) ([]string, error) {
 	return splitLinesPreserveSpacing(ascii), nil
 }
 
-func fitImageLogoForHeight(path string, preferredWidth int, maxAllowedWidth int, maxHeight int, noColor bool) ([]RenderedLine, int, bool) {
+func FitImageLogoForHeight(path string, preferredWidth int, maxAllowedWidth int, maxHeight int, noColor bool) ([]core.RenderedLine, int, bool) {
 	if maxHeight <= 0 {
 		return nil, 0, false
 	}
@@ -312,15 +318,15 @@ func fitImageLogoForHeight(path string, preferredWidth int, maxAllowedWidth int,
 	return ansiLinesToRendered(lines, noColor), visibleWidth(lines), true
 }
 
-func ansiLinesToRendered(lines []string, noColor bool) []RenderedLine {
-	out := make([]RenderedLine, 0, len(lines))
+func ansiLinesToRendered(lines []string, noColor bool) []core.RenderedLine {
+	out := make([]core.RenderedLine, 0, len(lines))
 	for _, line := range lines {
 		clean := stripANSI(line)
 		styled := line
 		if noColor {
 			styled = clean
 		}
-		out = append(out, RenderedLine{Raw: clean, Styled: styled})
+		out = append(out, core.RenderedLine{Raw: clean, Styled: styled})
 	}
 	return out
 }
@@ -350,7 +356,7 @@ func imageDimensions(path string) (int, int, bool) {
 }
 
 func findImageLogoPath(candidates []string) string {
-	dirs := logoImageDirCandidates()
+	dirs := config.LogoImageDirCandidates()
 	for _, key := range candidates {
 		for _, dir := range dirs {
 			for _, ext := range []string{".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff"} {
@@ -379,8 +385,8 @@ func windowsLogoCandidates() []string {
 		out = append(out, v)
 	}
 
-	w := getTerminalWidth()
-	h := getTerminalHeight()
+	w := platform.GetTerminalWidth()
+	h := platform.GetTerminalHeight()
 	if (w > 0 && w < 145) || (h > 0 && h < 45) {
 		// always use windows_small for TIGHT TIGHT TIGHT Windows terminals.
 		add("windows_small")
@@ -393,7 +399,7 @@ func windowsLogoCandidates() []string {
 }
 
 func windowsVersionLogoKey() string {
-	wf := windowsFacts()
+	wf := system.WindowsFacts()
 	caption := strings.ToLower(strings.TrimSpace(wf.Caption))
 	if strings.Contains(caption, "windows 11") {
 		return "windows_11"
@@ -448,4 +454,12 @@ func splitLinesPreserveSpacing(s string) []string {
 
 func isVisuallyEmpty(s string) bool {
 	return strings.TrimSpace(stripANSI(s)) == ""
+}
+
+func stripANSI(s string) string {
+	return ansiRE.ReplaceAllString(s, "")
+}
+
+func displayWidth(s string) int {
+	return len([]rune(stripANSI(s)))
 }

@@ -1,5 +1,5 @@
 // this file handles persisted user config and default theme state.
-package dawnfetch
+package config
 
 import (
 	"encoding/json"
@@ -15,10 +15,10 @@ type UserConfig struct {
 	Initialized  bool   `json:"initialized"`
 }
 
-const defaultConfigFileName = "dawnfetch_config.json"
+const DefaultConfigFileName = "dawnfetch_config.json"
 
-func loadPersistedDefaultTheme(fallback string) string {
-	cfg, err := loadUserConfig()
+func LoadPersistedDefaultTheme(fallback string) string {
+	cfg, err := LoadUserConfig()
 	if err != nil {
 		return fallback
 	}
@@ -28,8 +28,8 @@ func loadPersistedDefaultTheme(fallback string) string {
 	return fallback
 }
 
-func loadUserConfig() (UserConfig, error) {
-	for _, path := range userConfigLoadCandidates() {
+func LoadUserConfig() (UserConfig, error) {
+	for _, path := range UserConfigLoadCandidates() {
 		b, err := os.ReadFile(path)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -46,7 +46,7 @@ func loadUserConfig() (UserConfig, error) {
 	return UserConfig{}, nil
 }
 
-func userConfigLoadCandidates() []string {
+func UserConfigLoadCandidates() []string {
 	out := make([]string, 0, 4)
 	seen := map[string]struct{}{}
 	add := func(path string, ok bool) {
@@ -60,30 +60,30 @@ func userConfigLoadCandidates() []string {
 		out = append(out, path)
 	}
 
-	add(executableConfigPath())
-	add(userScopedConfigPath())
+	add(ExecutableConfigPath())
+	add(UserScopedConfigPath())
 	return out
 }
 
-func userConfigPath() (string, error) {
-	exePath, hasExe := executableConfigPath()
-	userPath, hasUser := userScopedConfigPath()
+func UserConfigPath() (string, error) {
+	exePath, hasExe := ExecutableConfigPath()
+	userPath, hasUser := UserScopedConfigPath()
 
 	// If an executable-local config already exists and is writable,
 	// keep using it for portable installs.
 	if hasExe {
-		if _, err := os.Stat(exePath); err == nil && canWritePath(exePath) {
+		if _, err := os.Stat(exePath); err == nil && CanWritePath(exePath) {
 			return exePath, nil
 		}
 	}
 
 	// Prefer per-user writable config for system installs (/usr/bin, Program Files).
-	if hasUser && canWritePath(userPath) {
+	if hasUser && CanWritePath(userPath) {
 		return userPath, nil
 	}
 
 	// Fallback to executable-local if writable.
-	if hasExe && canWritePath(exePath) {
+	if hasExe && CanWritePath(exePath) {
 		return exePath, nil
 	}
 
@@ -97,17 +97,17 @@ func userConfigPath() (string, error) {
 	return "", fmt.Errorf("failed to resolve config path")
 }
 
-func executableConfigPath() (string, bool) {
+func ExecutableConfigPath() (string, bool) {
 	exePath, err := os.Executable()
 	if err != nil {
 		return "", false
 	}
-	return filepath.Join(filepath.Dir(exePath), defaultConfigFileName), true
+	return filepath.Join(filepath.Dir(exePath), DefaultConfigFileName), true
 }
 
-func userScopedConfigPath() (string, bool) {
+func UserScopedConfigPath() (string, bool) {
 	if base, err := os.UserConfigDir(); err == nil && strings.TrimSpace(base) != "" {
-		return filepath.Join(base, "dawnfetch", defaultConfigFileName), true
+		return filepath.Join(base, "dawnfetch", DefaultConfigFileName), true
 	}
 
 	home, err := os.UserHomeDir()
@@ -115,12 +115,12 @@ func userScopedConfigPath() (string, bool) {
 		return "", false
 	}
 	if runtime.GOOS == "windows" {
-		return filepath.Join(home, "AppData", "Roaming", "dawnfetch", defaultConfigFileName), true
+		return filepath.Join(home, "AppData", "Roaming", "dawnfetch", DefaultConfigFileName), true
 	}
-	return filepath.Join(home, ".config", "dawnfetch", defaultConfigFileName), true
+	return filepath.Join(home, ".config", "dawnfetch", DefaultConfigFileName), true
 }
 
-func canWritePath(path string) bool {
+func CanWritePath(path string) bool {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		return false
@@ -152,8 +152,8 @@ func canWritePath(path string) bool {
 	return true
 }
 
-func saveUserConfig(cfg UserConfig) error {
-	path, err := userConfigPath()
+func SaveUserConfig(cfg UserConfig) error {
+	path, err := UserConfigPath()
 	if err != nil {
 		return err
 	}

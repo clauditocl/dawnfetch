@@ -1,5 +1,5 @@
 // this file defines shared data types used across collectors and rendering.
-package dawnfetch
+package core
 
 type Field struct {
 	Label string `json:"label"`
@@ -28,10 +28,10 @@ type RenderedLine struct {
 	Styled string
 }
 
-type osReleaseInfo struct {
+type OSReleaseInfo struct {
 	ID         string
 	IDLike     string
 	PrettyName string
 }
 
-const defaultPalette = "transgender"
+const DefaultPalette = "transgender"
