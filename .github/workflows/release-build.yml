@@ -37,21 +37,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(sed -nE 's/^[[:space:]]*var[[:space:]]+version[[:space:]]*=[[:space:]]*\"([^\"]+)\".*/\1/p' internal/dawnfetch/run.go | head -n1)"
+          VERSION=""
+          VERSION_FILE=""
+          for f in internal/dawnfetch/cli/run.go internal/dawnfetch/run.go; do
+            if [[ -f "${f}" ]]; then
+              CANDIDATE="$(sed -nE 's/^[[:space:]]*var[[:space:]]+version[[:space:]]*=[[:space:]]*\"([^\"]+)\".*/\1/p' "${f}" | head -n1)"
+              if [[ -n "${CANDIDATE}" ]]; then
+                VERSION="${CANDIDATE}"
+                VERSION_FILE="${f}"
+                break
+              fi
+            fi
+          done
           if [[ -z "${VERSION}" ]]; then
-            echo "failed to read version from internal/dawnfetch/run.go"
+            echo "failed to read version from internal/dawnfetch/cli/run.go or internal/dawnfetch/run.go"
             exit 1
           fi
           if [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             TAG_VERSION="${GITHUB_REF#refs/tags/v}"
             if [[ "${TAG_VERSION}" != "${VERSION}" ]]; then
-              echo "tag version (${TAG_VERSION}) does not match run.go version (${VERSION})"
+              echo "tag version (${TAG_VERSION}) does not match ${VERSION_FILE} version (${VERSION})"
               exit 1
             fi
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
-          echo "using version from run.go: ${VERSION}"
+          echo "using version from ${VERSION_FILE}: ${VERSION}"
 
       - name: Build release artifacts
         env:
