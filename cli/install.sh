@@ -148,8 +148,15 @@ resolve_asset_url() {
   local -a globs=()
   local url name glob
 
-  mapfile -t urls < <(extract_asset_urls || true)
-  mapfile -t globs < <(asset_name_globs || true)
+  while IFS= read -r url; do
+    [[ -n "${url}" ]] || continue
+    urls+=("${url}")
+  done < <(extract_asset_urls || true)
+
+  while IFS= read -r glob; do
+    [[ -n "${glob}" ]] || continue
+    globs+=("${glob}")
+  done < <(asset_name_globs || true)
 
   if [[ "${#urls[@]}" -eq 0 ]]; then
     warn "release has no downloadable assets"

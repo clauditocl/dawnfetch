@@ -14,6 +14,23 @@ function getNodeMajor() {
   return Number.isFinite(major) ? major : 0;
 }
 
+function printUnsupportedNodeError() {
+  const ver = String(process.versions && process.versions.node ? process.versions.node : "unknown");
+  console.error(`[dawnfetch] unsupported Node.js version: ${ver}`);
+  console.error(`[dawnfetch] npm package requires Node.js >= ${MIN_NODE_MAJOR}.`);
+  console.error("");
+  console.error("[dawnfetch] use direct installer instead:");
+  if (process.platform === "win32") {
+    console.error(
+      '  powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"'
+    );
+  } else {
+    console.error(
+      "  curl -fsSL https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.sh | bash"
+    );
+  }
+}
+
 function run(command, args) {
   const res = spawnSync(command, args, {
     stdio: "inherit",
@@ -66,19 +83,8 @@ function printSuccessHint() {
 try {
   const nodeMajor = getNodeMajor();
   if (nodeMajor > 0 && nodeMajor < MIN_NODE_MAJOR) {
-    console.warn(
-      `[dawnfetch] Detected Node ${process.versions.node}. npm install helpers target Node ${MIN_NODE_MAJOR}+.` 
-    );
-    if (process.platform === "win32") {
-      console.warn(
-        '[dawnfetch] Use direct installer instead: powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"'
-      );
-    } else {
-      console.warn(
-        "[dawnfetch] Use direct installer instead: curl -fsSL https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.sh | bash"
-      );
-    }
-    process.exit(0);
+    printUnsupportedNodeError();
+    process.exit(1);
   }
 
   if (process.platform === "win32") {

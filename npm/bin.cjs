@@ -7,6 +7,27 @@ const os = require("os");
 const path = require("path");
 
 const SELF_HEAL_ENV = "DAWNFETCH_NPM_SELF_HEAL";
+const MIN_NODE_MAJOR = 18;
+
+function getNodeMajor() {
+  const raw = String(process.versions && process.versions.node ? process.versions.node : "");
+  const major = parseInt(raw.split(".")[0], 10);
+  return Number.isFinite(major) ? major : 0;
+}
+
+function printUnsupportedNodeError() {
+  const ver = String(process.versions && process.versions.node ? process.versions.node : "unknown");
+  const lines = [
+    `[dawnfetch] unsupported Node.js version: ${ver}`,
+    `[dawnfetch] npm package requires Node.js >= ${MIN_NODE_MAJOR}.`,
+    "",
+    "[dawnfetch] use direct installer instead:",
+    process.platform === "win32"
+      ? '  powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"'
+      : "  curl -fsSL https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.sh | bash"
+  ];
+  console.error(lines.join("\n"));
+}
 
 function candidatePaths() {
   if (process.platform === "win32") {
@@ -39,6 +60,12 @@ function trySelfHealInstall() {
     env
   });
   return typeof res.status === "number" && res.status === 0;
+}
+
+const nodeMajor = getNodeMajor();
+if (nodeMajor > 0 && nodeMajor < MIN_NODE_MAJOR) {
+  printUnsupportedNodeError();
+  process.exit(1);
 }
 
 let exe = firstExisting(candidatePaths());
